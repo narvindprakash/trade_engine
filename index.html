@@ -395,12 +395,12 @@
 
       <div id="singleEntryPane">
         <div class="form-grid">
-          <div class="field"><label>Entry date</label><input type="date" id="f_entrydate" value="2026-02-27"></div>
-          <div class="field"><label>Entry time</label><input type="time" id="f_entrytime" value="09:30"></div>
-          <div class="field"><label>Segment</label><select id="f_segment"><option>Index</option><option>Commodities</option><option selected>Equity</option><option>Options</option></select></div>
-          <div class="field"><label>Instrument</label><input type="text" id="f_instrument" placeholder="RELIANCE" value="RELIANCE"></div>
-          <div class="field"><label>Trade type</label><select id="f_tradetype"><option>Intraday</option><option selected>Positional</option><option>Bu-Swing</option><option>Be-Swing</option></select></div>
-          <div class="field"><label>Strategy type</label><select id="f_strategytype"><option selected>Equity Buy</option><option>Equity Sell</option><option>CE Buy</option><option>CE Sell</option><option>PE Buy</option><option>PE Sell</option><option>FUT Buy</option><option>FUT Sell</option></select></div>
+          <div class="field"><label>Entry date</label><input type="date" id="f_entrydate"></div>
+          <div class="field"><label>Entry time</label><input type="time" id="f_entrytime"></div>
+          <div class="field"><label>Segment</label><select id="f_segment"><option value="">— select —</option><option>Index</option><option>Commodities</option><option>Equity</option><option>Options</option></select></div>
+          <div class="field"><label>Instrument</label><input type="text" id="f_instrument" placeholder="e.g. NIFTY, RELIANCE"></div>
+          <div class="field"><label>Trade type</label><select id="f_tradetype"><option value="">— select —</option><option>Intraday</option><option>Positional</option><option>Bu-Swing</option><option>Be-Swing</option></select></div>
+          <div class="field"><label>Strategy type</label><select id="f_strategytype"><option value="">— select —</option><option>Equity Buy</option><option>Equity Sell</option><option>CE Buy</option><option>CE Sell</option><option>PE Buy</option><option>PE Sell</option><option>FUT Buy</option><option>FUT Sell</option></select></div>
 
           <div class="field span3"><label>Direction</label>
             <div class="direction-toggle">
@@ -409,32 +409,22 @@
             </div>
           </div>
 
-          <div class="field"><label>Entry price</label><input type="number" id="f_entry" value="2450" oninput="calcPnl()"></div>
-          <div class="field"><label>Stop loss</label><input type="number" id="f_sl" value="2400"></div>
-          <div class="field"><label>Target price</label><input type="number" id="f_target" value="2580"></div>
+          <div class="field"><label>Entry price</label><input type="number" id="f_entry"></div>
+          <div class="field"><label>Stop loss</label><input type="number" id="f_sl"></div>
+          <div class="field"><label>Target price</label><input type="number" id="f_target"></div>
 
-          <div class="field"><label>Quantity</label><input type="number" id="f_qty" value="100" oninput="calcPnl()"></div>
-          <div class="field"><label>Margin used</label><input type="number" id="f_margin" value="245000"></div>
-          <div class="field"><label>Broker</label><select id="f_broker"><option selected>Zerodha</option><option>Kotak</option><option>Upstox</option></select></div>
+          <div class="field"><label>Quantity</label><input type="number" id="f_qty"></div>
+          <div class="field"><label>Margin used</label><input type="number" id="f_margin"></div>
+          <div class="field"><label>Broker</label><select id="f_broker"><option value="">— select —</option><option>Zerodha</option><option>Kotak</option><option>Upstox</option></select></div>
 
-          <div class="field"><label>Exit date</label><input type="date" id="f_exitdate" value="2026-02-27"></div>
-          <div class="field"><label>Exit price</label><input type="number" id="f_exit" value="2565" oninput="calcPnl()"></div>
-          <div class="field"><label>Brokerage &amp; taxes</label><input type="number" id="f_brok" value="220" oninput="calcPnl()"></div>
+          <div class="field"><label>Emotions check</label><select id="f_emotions"><option value="">— select —</option><option>Calm</option><option>FOMO</option><option>Revenge</option><option>Confident</option><option>Anxious</option></select></div>
+          <div class="field span2"><label>Market condition</label><select id="f_marketcondition"><option value="">— select —</option><option>Trending Up</option><option>Trending Down</option><option>Sideways</option><option>Choppy</option></select></div>
 
-          <div class="field"><label>Emotions check</label><select id="f_emotions"><option>Calm</option><option>FOMO</option><option>Revenge</option><option selected>Confident</option><option>Anxious</option></select></div>
-          <div class="field"><label>Market condition</label><select id="f_marketcondition"><option>Trending Up</option><option>Trending Down</option><option selected>Sideways</option><option>Choppy</option></select></div>
-          <div class="field"><label>P&amp;L type</label><select id="f_pltype"><option selected>Rule-based Win</option><option>Rule-based Loss</option><option>Impulsive Win</option><option>Impulsive Loss</option></select></div>
-
-          <div class="field span3"><label>Context / setup notes</label><textarea id="f_context" rows="2">Strong post-earnings move, breakout above prior resistance.</textarea></div>
-        </div>
-
-        <div class="pnl-preview">
-          <div><div class="label">Live gross P&amp;L preview</div><div class="stat-sub" style="margin-top:2px;">(Entry/Exit/Qty/Direction — editable before submit)</div></div>
-          <div class="value up" id="pnlPreview">₹11,500</div>
+          <div class="field span3"><label>Context / setup notes</label><textarea id="f_context" rows="2" placeholder="Why you took the trade"></textarea></div>
         </div>
 
         <button class="submit-btn" type="button" onclick="submitNewTrade()">SUBMIT TRADE →</button>
-        <div class="form-note" id="newTradeStatus">Adds a row to Trade_Journal. Formula columns (Max_Risk_INR, Lot_Size, Points_Collected, R_Multiple, ROI) calculate automatically.</div>
+        <div class="form-note" id="newTradeStatus">Adds a row to Trade_Journal with no exit info — close it later from "Close Open Trade." Formula columns (Max_Risk_INR, Lot_Size, Points_Collected, R_Multiple, ROI) calculate automatically.</div>
       </div>
 
       <div id="closeTradePane" style="display:none;">
@@ -466,6 +456,7 @@
       </div>
 
       <div id="bulkUploadPane" style="display:none;">
+        <button class="edit-btn" type="button" onclick="downloadBulkTemplate()" style="margin-bottom:12px;">⬇ DOWNLOAD CSV TEMPLATE</button>
         <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
           <div class="big">Drop a CSV or XLSX file here, or click to browse</div>
           <div class="small">File can contain multiple trades — each row becomes one Trade_Journal entry</div>
@@ -667,6 +658,7 @@
             direction: r.Direction, strategy: r.Strategy_Type, entry: Number(r.Entry_Price || 0), qty: Number(r.Quantity || 0), days: days };
         });
         renderJournalTable();
+        refreshReportsIfReady();
       });
   }
 
@@ -691,6 +683,101 @@
     if(t) openFloatWindow(t);
   }
 
+  // ---------- REPORTS ----------
+  function populateReportsFilters(){
+    var months = Array.from(new Set(journalData.map(function(r){ return r.Month; }).filter(Boolean)));
+    var monthSel = document.getElementById('monthFilter');
+    var curMonth = monthSel.value;
+    monthSel.innerHTML = '<option>All</option>' + months.map(function(m){ return '<option>' + m + '</option>'; }).join('');
+    if(months.indexOf(curMonth) !== -1) monthSel.value = curMonth;
+
+    var weeks = Array.from(new Set(journalData.map(function(r){ return r.Week_Number; }).filter(Boolean)));
+    var weekSel = document.getElementById('weekFilter');
+    var curWeek = weekSel.value;
+    weekSel.innerHTML = '<option>All weeks</option>' + weeks.map(function(w){ return '<option>' + w + '</option>'; }).join('');
+    if(weeks.indexOf(curWeek) !== -1) weekSel.value = curWeek;
+  }
+
+  function renderReports(){
+    var month = document.getElementById('monthFilter').value;
+    var week = document.getElementById('weekFilter').value;
+    var rows = journalData.filter(function(r){
+      if(month && month !== 'All' && r.Month !== month) return false;
+      if(week && week !== 'All weeks' && r.Week_Number !== week) return false;
+      return true;
+    });
+    var closed = rows.filter(isClosedRow_);
+    var wins = closed.filter(function(r){ return Number(r.Net_PnL) > 0; });
+    var losses = closed.filter(function(r){ return Number(r.Net_PnL) < 0; });
+    var gross = closed.reduce(function(s,r){ return s + Number(r.Gross_PnL || 0); }, 0);
+    var net = closed.reduce(function(s,r){ return s + Number(r.Net_PnL || 0); }, 0);
+    var totalProfit = wins.reduce(function(s,r){ return s + Number(r.Net_PnL); }, 0);
+    var totalLoss = losses.reduce(function(s,r){ return s + Number(r.Net_PnL); }, 0);
+    var avgWin = wins.length ? totalProfit / wins.length : 0;
+    var avgLoss = losses.length ? totalLoss / losses.length : 0;
+    var maxProfit = wins.length ? Math.max.apply(null, wins.map(function(r){ return Number(r.Net_PnL); })) : 0;
+    var winRate = closed.length ? wins.length / closed.length : 0;
+    var rr = avgLoss ? Math.abs(avgWin / avgLoss) : 0;
+
+    document.getElementById('swotTotal').textContent = closed.length;
+    document.getElementById('swotGross').textContent = fmtMoney_(gross);
+    document.getElementById('swotGross').className = 'stat-value ' + (gross >= 0 ? 'up' : 'down');
+    document.getElementById('swotNet').textContent = fmtMoney_(net);
+    document.getElementById('swotNet').className = 'stat-value ' + (net >= 0 ? 'up' : 'down');
+    document.getElementById('swotWinRate').textContent = (winRate * 100).toFixed(1) + '%';
+    document.getElementById('swotAvgWin').textContent = fmtMoney_(avgWin);
+    document.getElementById('swotAvgLoss').textContent = fmtMoney_(avgLoss);
+    document.getElementById('swotMaxProfit').textContent = fmtMoney_(maxProfit);
+    document.getElementById('swotRR').textContent = rr.toFixed(2);
+
+    document.getElementById('reportsCountBadge').textContent = rows.length + ' ROWS';
+    var body = document.getElementById('reportsTradesBody');
+    body.innerHTML = '';
+    rows.slice().sort(function(a,b){ return new Date(b.Entry_Date) - new Date(a.Entry_Date); }).forEach(function(r){
+      var rNet = Number(r.Net_PnL || 0);
+      var closedRow = isClosedRow_(r);
+      var cls = closedRow ? (rNet >= 0 ? 'up' : 'down') : '';
+      body.innerHTML += '<tr><td>' + fmtDate_(r.Entry_Date) + '</td><td>' + r.Instrument_Name + '</td>' +
+        '<td><span class="seg-tag">' + r.Segment + '</span></td><td>' + r.Strategy_Type + '</td>' +
+        '<td class="mono-num ' + cls + '">' + (closedRow ? fmtMoney_(rNet) : '—') + '</td>' +
+        '<td class="mono-num ' + cls + '">' + (r.R_Multiple !== '' && r.R_Multiple !== undefined ? (Number(r.R_Multiple) >= 0 ? '+' : '') + Number(r.R_Multiple).toFixed(2) + 'R' : '—') + '</td></tr>';
+    });
+  }
+
+  function renderTradePlanProgress(){
+    var el = document.getElementById('tradePlanProgress');
+    if(!tradePlanRows.length){ el.innerHTML = '<div class="empty-note">No Trade Plan targets set yet.</div>'; return; }
+    var byInstrument = {};
+    tradePlanRows.forEach(function(w){
+      var key = w.instrument;
+      if(!byInstrument[key]) byInstrument[key] = { target: 0, actual: 0 };
+      byInstrument[key].target += Number(w.points || 0);
+    });
+    journalData.forEach(function(r){
+      var key = r.Instrument_Name;
+      if(byInstrument[key]) byInstrument[key].actual += Number(r.Points_Collected || 0);
+    });
+    var html = '';
+    Object.keys(byInstrument).forEach(function(instr){
+      var d = byInstrument[instr];
+      var pct = d.target ? Math.min(100, Math.max(0, Math.round(d.actual / d.target * 100))) : 0;
+      var achieved = d.target && d.actual >= d.target;
+      html += '<div class="progress-row"><div class="name">' + instr + '</div>' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%; background:' + (achieved ? 'var(--profit)' : 'var(--accent)') + ';"></div></div>' +
+        '<div class="val">' + Math.round(d.actual) + ' / ' + Math.round(d.target) + ' pts</div>' +
+        '<div class="status-pill ' + (achieved ? 'status-achieved' : 'status-missed') + '">' + (achieved ? 'ACHIEVED' : 'MISSED') + '</div></div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function refreshReportsIfReady(){
+    if(journalData.length || tradePlanRows.length){
+      populateReportsFilters();
+      renderReports();
+      renderTradePlanProgress();
+    }
+  }
+
   var INSTRUMENT_LOTS = {NIFTY:75, BANKNIFTY:30, NATGASMINI:250, SILVERMIC:5, RELIANCE:1, TCS:1, HDFCBANK:1, INFY:1};
   var tradePlanRows = [];
   var tradePlanRowMeta = [];
@@ -706,6 +793,7 @@
         });
         tradePlanRowMeta = (data || []).map(function(r){ return r.__row; });
         buildWeeklyTable();
+        refreshReportsIfReady();
       });
   }
 
@@ -827,8 +915,7 @@
     'function setSelectByText(id, text){ var sel = document.getElementById(id); if(!sel || !text) return; for(var i=0;i<sel.options.length;i++){ if(sel.options[i].text === text){ sel.selectedIndex = i; return; } } }',
     'function fmtDateForInput(d){ if(!d) return ""; var dt = new Date(d); if(isNaN(dt)) return ""; return dt.toISOString().slice(0,10); }',
     '',
-    'function setDirection(d){ direction = d; document.getElementById("btnLong").classList.toggle("active", d==="Long"); document.getElementById("btnShort").classList.toggle("active", d==="Short"); calcPnl(); }',
-    'function calcPnl(){ var entry=parseFloat(document.getElementById("f_entry").value)||0, exit=parseFloat(document.getElementById("f_exit").value)||0, qty=parseFloat(document.getElementById("f_qty").value)||0, brok=parseFloat(document.getElementById("f_brok").value)||0; var diff = direction==="Long" ? (exit-entry) : (entry-exit); var net = diff*qty-brok; var el=document.getElementById("pnlPreview"); el.textContent=(net<0?"-":"")+"\u20b9"+Math.abs(Math.round(net)).toLocaleString("en-IN"); el.className="value "+(net>=0?"up":"down"); }',
+    'function setDirection(d){ direction = d; document.getElementById("btnLong").classList.toggle("active", d==="Long"); document.getElementById("btnShort").classList.toggle("active", d==="Short"); }',
     '',
     'function applyPrefill(){',
     '  if(!PREFILL) return;',
@@ -845,17 +932,13 @@
     '  document.getElementById("f_qty").value = PREFILL.Quantity || "";',
     '  document.getElementById("f_margin").value = PREFILL.Margin_Used || "";',
     '  setSelectByText("f_broker", PREFILL.Broker);',
-    '  document.getElementById("f_exitdate").value = fmtDateForInput(PREFILL.Exit_Date);',
-    '  document.getElementById("f_exit").value = PREFILL.Exit_Price || "";',
-    '  document.getElementById("f_brok").value = PREFILL.Brokerage_Taxes || "";',
-    '  setSelectByText("f_pltype", PREFILL.Profit_Loss_Type);',
     '  setSelectByText("f_emotions", PREFILL.Emotions_Check);',
     '  setSelectByText("f_marketcondition", PREFILL.Market_Condition);',
     '  document.getElementById("f_context").value = PREFILL.Context || "";',
-    '  calcPnl();',
+    '  setDirection(PREFILL.Direction === "Short" ? "Short" : "Long");',
     '  var btn = document.querySelector("#singleEntryPane .submit-btn");',
     '  if(btn) btn.textContent = "SAVE CHANGES \u2192";',
-    '  document.getElementById("newTradeStatus").textContent = "Editing " + PREFILL.Trade_ID + ". Note: dropdown fields not in this trade\'s exact option list may reset to the default.";',
+    '  document.getElementById("newTradeStatus").textContent = "Editing " + PREFILL.Trade_ID + ". Only entry-side details are edited here \u2014 exit info is handled from Close Open Trade. Dropdown fields not in this trade\'s exact option list may reset to the default.";',
     '}',
     '',
     'function buildNewTradePayload(){',
@@ -874,7 +957,6 @@
     '    quantity: parseFloat(document.getElementById("f_qty").value) || 0,',
     '    marginUsed: parseFloat(document.getElementById("f_margin").value) || 0,',
     '    broker: document.getElementById("f_broker").value,',
-    '    plType: document.getElementById("f_pltype").value,',
     '    emotions: document.getElementById("f_emotions").value,',
     '    marketCondition: document.getElementById("f_marketcondition").value,',
     '    context: document.getElementById("f_context").value,',
@@ -886,21 +968,24 @@
     '    Entry_Date: p.entryDate, Entry_Time: p.entryTime, Segment: p.segment, Instrument_Name: p.instrument,',
     '    Instrument_Traded: p.instrumentTraded, Trade_Type: p.tradeType, Strategy_Type: p.strategyType, Direction: p.direction,',
     '    Entry_Price: p.entryPrice, Stop_Loss: p.stopLoss, Target_Price: p.targetPrice, Quantity: p.quantity,',
-    '    Margin_Used: p.marginUsed, Broker: p.broker, Profit_Loss_Type: p.plType, Emotions_Check: p.emotions,',
+    '    Margin_Used: p.marginUsed, Broker: p.broker, Emotions_Check: p.emotions,',
     '    Market_Condition: p.marketCondition, Context: p.context, Notes: p.notes',
     '  };',
     '}',
     'function submitNewTrade(){',
     '  var status = document.getElementById("newTradeStatus");',
     '  var payload = buildNewTradePayload();',
-    '  status.textContent = "Saving\u2026";',
+    '  if(!payload.entryDate || !payload.instrument){ status.textContent = "Entry date and Instrument are required."; status.style.color = "var(--loss)"; return; }',
+    '  status.textContent = "Saving\u2026"; status.style.color = "";',
     '  var action = PREFILL ? "editTrade" : "newTrade";',
     '  var body = PREFILL ? { tradeId: PREFILL.Trade_ID, fields: mapToHeaderFields(payload) } : payload;',
+    '  console.log("submitNewTrade", action, body);',
     '  opener.postAction(action, body).then(function(res){',
-    '    if(res.error){ status.textContent = "Error: " + res.error; return; }',
-    '    status.textContent = "Saved.";',
+    '    console.log("submitNewTrade response", res);',
+    '    if(res.error){ status.textContent = "Error: " + res.error; status.style.color = "var(--loss)"; return; }',
+    '    status.textContent = "Saved."; status.style.color = "var(--profit)";',
     '    opener.fetchJournalData().then(function(){ window.close(); });',
-    '  }).catch(function(err){ status.textContent = "Network error: " + err.message; });',
+    '  }).catch(function(err){ status.textContent = "Network error: " + err.message; status.style.color = "var(--loss)"; console.error(err); });',
     '}',
     '',
     'function renderOpenTrades(){',
@@ -957,6 +1042,17 @@
     '  if(mode==="close"){ backToOpenList(); }',
     '}',
     '',
+    'function downloadBulkTemplate(){',
+    '  var headers = ["entryDate","entryTime","segment","instrument","tradeType","strategyType","direction","entryPrice","stopLoss","targetPrice","quantity","marginUsed","broker","emotions","marketCondition","context","exitDate","exitPrice","brokerage","grossPnl"];',
+    '  var example = ["2026-08-20","09:30","Equity","RELIANCE","Positional","Equity Buy","Long","2450","2400","2580","100","245000","Zerodha","Confident","Trending Up","Post-earnings breakout","2026-08-25","2565","220","11500"];',
+    '  var note = ["# Leave exitDate/exitPrice/brokerage/grossPnl blank for a trade that\'s still open \u2014 close it later from the app.",""];',
+    '  var csv = headers.join(",") + "\\n" + example.join(",") + "\\n" + note[0] + "\\n";',
+    '  var blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});',
+    '  var link = document.createElement("a");',
+    '  link.href = URL.createObjectURL(blob);',
+    '  link.download = "trade_journal_bulk_upload_template.csv";',
+    '  document.body.appendChild(link); link.click(); document.body.removeChild(link);',
+    '}',
     'function handleFile(file){',
     '  if(!file) return;',
     '  var reader = new FileReader(); var isCsv = /\\.csv$/i.test(file.name);',
@@ -1011,7 +1107,6 @@
     '});',
     '',
     'renderOpenTrades();',
-    'calcPnl();',
     'applyPrefill();'
   ].join('\n');
 
@@ -1142,10 +1237,8 @@
     options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ display:false } } }
   });
 
-  calcPnl();
   recalcCapital();
   buildRoadmapTable();
-  renderOpenTrades();
   renderJournalTable();
   buildWeeklyTable();
 </script>
