@@ -259,7 +259,7 @@
           <div class="more-item" data-tab="capital" onclick="showTab('capital'); toggleMoreMenu()">Capital Allocation</div>
           <div class="more-item" data-tab="roadmap" onclick="showTab('roadmap'); toggleMoreMenu()">Roadmap</div>
           <div class="more-item" data-tab="journal" onclick="showTab('journal'); toggleMoreMenu()">Trade Journal</div>
-          <div class="more-item" data-tab="weekly" onclick="showTab('weekly'); toggleMoreMenu()">Weekly Targets</div>
+          <div class="more-item" data-tab="weekly" onclick="showTab('weekly'); toggleMoreMenu()">Trade Plan</div>
         </div>
       </div>
     </div>
@@ -323,11 +323,11 @@
       </div>
       <table class="edit-table">
         <thead><tr><th>Segment</th><th>%_Allocation</th><th>Allocated_Capital</th><th>Risk_%_Per_Trade</th><th>Max_Risk_Per_Trade</th></tr></thead>
-        <tbody>
-          <tr><td>Index</td><td><input type="number" step="0.01" class="pct-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="alloc-0">—</td><td><input type="number" step="0.001" class="risk-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-0">—</td></tr>
-          <tr><td>Commodities</td><td><input type="number" step="0.01" class="pct-in" value="0.25" oninput="recalcCapital()"></td><td class="readout" id="alloc-1">—</td><td><input type="number" step="0.001" class="risk-in" value="0.02" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-1">—</td></tr>
-          <tr><td>Equity</td><td><input type="number" step="0.01" class="pct-in" value="0.30" oninput="recalcCapital()"></td><td class="readout" id="alloc-2">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-2">—</td></tr>
-          <tr><td>Options</td><td><input type="number" step="0.01" class="pct-in" value="0.45" oninput="recalcCapital()"></td><td class="readout" id="alloc-3">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-3">—</td></tr>
+        <tbody id="capitalBody">
+          <tr><td class="seg-name" id="segname-0">Index</td><td><input type="number" step="0.01" class="pct-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="alloc-0">—</td><td><input type="number" step="0.001" class="risk-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-0">—</td></tr>
+          <tr><td class="seg-name" id="segname-1">Commodities</td><td><input type="number" step="0.01" class="pct-in" value="0.25" oninput="recalcCapital()"></td><td class="readout" id="alloc-1">—</td><td><input type="number" step="0.001" class="risk-in" value="0.02" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-1">—</td></tr>
+          <tr><td class="seg-name" id="segname-2">Equity</td><td><input type="number" step="0.01" class="pct-in" value="0.30" oninput="recalcCapital()"></td><td class="readout" id="alloc-2">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-2">—</td></tr>
+          <tr><td class="seg-name" id="segname-3">Options</td><td><input type="number" step="0.01" class="pct-in" value="0.45" oninput="recalcCapital()"></td><td class="readout" id="alloc-3">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-3">—</td></tr>
           <tr><td style="font-weight:600;">Total_%_Check</td><td class="readout" id="pctCheck" colspan="4">—</td></tr>
         </tbody>
       </table>
@@ -363,13 +363,13 @@
 
   <div class="view" id="view-weekly">
     <div class="panel">
-      <div class="panel-title">Weekly Targets <span class="badge">LIVE — TARGET_MONEY = POINTS × LOT SIZE</span></div>
+      <div class="panel-title">Trade Plan <span class="badge">LIVE — TARGET_MONEY = POINTS × LOT SIZE</span></div>
       <table class="edit-table" id="weeklyTable">
         <thead><tr><th>Month</th><th>Week</th><th>Instrument</th><th>Target_Points</th><th>Lot_Size</th><th>Target_Money</th></tr></thead>
         <tbody id="weeklyBody"></tbody>
       </table>
-      <div class="form-note">Lot_Size auto-fills when you change Instrument (from Config), but you can override it. Target_Money recalculates as you type.</div>
-      <button class="submit-btn" type="button" onclick="saveWeeklyTargets()">SAVE CHANGES</button>
+      <div class="form-note">Lot_Size auto-fills when you change Instrument, but you can override it. Target_Money recalculates as you type, and matches the formula in the Trade_Plan sheet.</div>
+      <button class="submit-btn" type="button" onclick="saveTradePlan()">SAVE CHANGES</button>
       <span class="form-note" id="weeklySavedNote" style="margin-left:12px; display:inline-block;"></span>
     </div>
   </div>
@@ -559,6 +559,7 @@
     document.getElementById('acctDot').textContent = (payload.name || payload.email || '?').charAt(0).toUpperCase();
     document.getElementById('acctLbl').textContent = payload.email;
     fetchCapitalData();
+    fetchTradePlanData();
   }
 
   function signOut(){
@@ -588,6 +589,8 @@
         var riskIns = document.querySelectorAll('.risk-in');
         capitalRowMeta = (data.segments || []).map(function(s){ return s.__row; });
         (data.segments || []).forEach(function(s, i){
+          var nameCell = document.getElementById('segname-' + i);
+          if(nameCell) nameCell.textContent = s.segment;
           if(pctIns[i]) pctIns[i].value = s.pctAllocation || 0;
           if(riskIns[i]) riskIns[i].value = s.riskPct || 0;
         });
@@ -605,7 +608,7 @@
   function doRefresh(){
     var btn = document.getElementById('refreshBtn');
     btn.classList.add('loading');
-    var refreshTask = idToken ? fetchCapitalData() : Promise.resolve();
+    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData()]) : Promise.resolve();
     refreshTask.finally(function(){
       btn.classList.remove('loading');
       document.getElementById('asof').textContent = 'as of ' + new Date().toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -667,19 +670,28 @@
   function editTrade(i){ openFloatWindow(journalTrades[i]); }
 
   var INSTRUMENT_LOTS = {NIFTY:75, BANKNIFTY:30, NATGASMINI:250, SILVERMIC:5, RELIANCE:1, TCS:1, HDFCBANK:1, INFY:1};
-  var weeklyRows = [
-    {month:'Aug', week:'WK-1', instrument:'NATGASMINI', points:10, lot:250},
-    {month:'Aug', week:'WK-2', instrument:'NATGASMINI', points:10, lot:250},
-    {month:'Aug', week:'WK-3', instrument:'NATGASMINI', points:12, lot:250},
-    {month:'Aug', week:'WK-4', instrument:'NATGASMINI', points:8, lot:250},
-    {month:'Aug', week:'WK-1', instrument:'NIFTY', points:40, lot:75},
-    {month:'Aug', week:'WK-2', instrument:'BANKNIFTY', points:60, lot:30}
-  ];
+  var tradePlanRows = [];
+  var tradePlanRowMeta = [];
+
+  function fetchTradePlanData(){
+    if(!idToken) return Promise.resolve();
+    return fetch(WEBAPP_URL + '?token=' + encodeURIComponent(idToken) + '&action=tradePlan')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.error){ alert('Error loading Trade Plan: ' + data.error); return; }
+        tradePlanRows = (data || []).map(function(r){
+          return { month: r.Month, week: r.Week_Number, instrument: r.Instrument_Name, points: r.Target_Points, lot: r.Lot_Size };
+        });
+        tradePlanRowMeta = (data || []).map(function(r){ return r.__row; });
+        buildWeeklyTable();
+      });
+  }
+
   function buildWeeklyTable(){
     var body = document.getElementById('weeklyBody');
     body.innerHTML = '';
     var instrOptions = Object.keys(INSTRUMENT_LOTS).map(function(k){ return '<option>' + k + '</option>'; }).join('');
-    weeklyRows.forEach(function(r, i){
+    tradePlanRows.forEach(function(r, i){
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td><input type="text" class="wk-month" data-i="' + i + '" value="' + r.month + '" oninput="recalcWeekly()"></td>' +
@@ -707,11 +719,35 @@
       document.getElementById('wk-money-' + i).textContent = '₹' + Math.round(pts * lot).toLocaleString('en-IN');
     });
   }
-  function saveWeeklyTargets(){
+  function saveTradePlan(){
     var note = document.getElementById('weeklySavedNote');
-    note.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (mockup — writes to Capital_Allocation sheet once connected)';
-    note.style.color = 'var(--profit)';
-    setTimeout(function(){ note.style.color = ''; }, 2500);
+    if(!idToken){ note.textContent = 'Sign in with Google first.'; note.style.color = 'var(--loss)'; return; }
+
+    var monthIns = document.querySelectorAll('.wk-month');
+    var weekIns = document.querySelectorAll('.wk-week');
+    var instrIns = document.querySelectorAll('.wk-instr');
+    var pointsIns = document.querySelectorAll('.wk-points');
+    var lotIns = document.querySelectorAll('.wk-lot');
+    var rows = tradePlanRows.map(function(r, i){
+      return {
+        __row: tradePlanRowMeta[i],
+        month: monthIns[i].value, week: weekIns[i].value, instrument: instrIns[i].value,
+        targetPoints: parseFloat(pointsIns[i].value) || 0, lotSize: parseFloat(lotIns[i].value) || 0
+      };
+    });
+
+    note.textContent = 'Saving…';
+    note.style.color = '';
+    postAction('saveTradePlan', { rows: rows }).then(function(res){
+      if(res.error){ note.textContent = 'Error: ' + res.error; note.style.color = 'var(--loss)'; return; }
+      note.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' — written to Trade_Plan sheet';
+      note.style.color = 'var(--profit)';
+      fetchTradePlanData();
+      setTimeout(function(){ note.style.color = ''; }, 3000);
+    }).catch(function(err){
+      note.textContent = 'Network error: ' + err.message;
+      note.style.color = 'var(--loss)';
+    });
   }
 
   function openFloatWindow(prefill){
