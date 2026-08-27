@@ -107,6 +107,15 @@
   .panel{background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; padding:16px; margin-bottom:12px;}
   .panel-title{font-family:var(--display); font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:12px; letter-spacing:0.3px; display:flex; justify-content:space-between; align-items:center;}
   .panel-title .badge{font-family:var(--mono); font-size:10px; color:var(--text-muted); font-weight:400; letter-spacing:0.4px; border:1px solid var(--border); padding:2px 8px; border-radius:3px;}
+  .panel-title-right{display:flex; align-items:center; gap:8px;}
+
+  .info-wrap{position:relative; display:inline-flex;}
+  .info-icon{width:16px; height:16px; border-radius:50%; border:1px solid var(--text-muted); color:var(--text-muted); background:none; font-family:var(--mono); font-size:10px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;}
+  .info-icon:hover{border-color:var(--accent); color:var(--accent);}
+  .info-icon.active{border-color:var(--accent); color:var(--accent); background:rgba(217,164,78,0.1);}
+  .info-popover{position:absolute; top:22px; right:0; width:250px; background:var(--bg-panel); border:1px solid var(--border-strong); border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.5; color:var(--text-secondary); box-shadow:0 8px 20px rgba(0,0,0,0.35); z-index:30; display:none;}
+  .info-popover.open{display:block;}
+  .info-popover::before{content:''; position:absolute; top:-5px; right:5px; width:9px; height:9px; background:var(--bg-panel); border-left:1px solid var(--border-strong); border-top:1px solid var(--border-strong); transform:rotate(45deg);}
 
   .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:12px;}
   .grid-2b{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -276,15 +285,44 @@
       <div class="stat-card"><div class="stat-label">Hit Ratio</div><div class="stat-value" id="statHitRatioValue">55.0%</div><div class="stat-sub" id="statHitRatioSub">11W / 9L</div></div>
     </div>
     <div class="grid-2">
-      <div class="panel"><div class="panel-title">Capital growth <span class="badge">PLANNED VS ACTUAL</span></div>
+      <div class="panel"><div class="panel-title">Capital growth
+        <div class="panel-title-right">
+          <span class="badge">PLANNED VS ACTUAL</span>
+          <div class="info-wrap">
+            <button class="info-icon" onclick="toggleInfo('info-equity', this)">?</button>
+            <div class="info-popover" id="info-equity">Compares your Roadmap sheet's Planned_Capital and Actual_Capital, month by month — shows whether your real trading results are ahead of or behind your own plan.</div>
+          </div>
+        </div>
+      </div>
         <div style="position:relative; height:220px;"><canvas id="equityChart" role="img" aria-label="Line chart comparing planned and actual capital growth from September to February"></canvas></div></div>
-      <div class="panel"><div class="panel-title">Win rate</div>
+      <div class="panel"><div class="panel-title">Win rate
+        <div class="panel-title-right">
+          <div class="info-wrap">
+            <button class="info-icon" onclick="toggleInfo('info-winrate', this)">?</button>
+            <div class="info-popover" id="info-winrate">Percentage of closed trades with positive Net_PnL, shown as wins vs losses. Open trades aren't counted until they're closed.</div>
+          </div>
+        </div>
+      </div>
         <div style="position:relative; height:220px;"><canvas id="winRateChart" role="img" aria-label="Donut chart showing 11 winning trades and 9 losing trades"></canvas></div></div>
     </div>
     <div class="grid-2b">
-      <div class="panel"><div class="panel-title">P&amp;L by segment</div>
+      <div class="panel"><div class="panel-title">P&amp;L by segment
+        <div class="panel-title-right">
+          <div class="info-wrap">
+            <button class="info-icon" onclick="toggleInfo('info-segpnl', this)">?</button>
+            <div class="info-popover" id="info-segpnl">Adds up Net_PnL for every closed trade, grouped by Segment (Index/Commodities/Equity/Options) — shows which part of your trading is actually making money.</div>
+          </div>
+        </div>
+      </div>
         <div style="position:relative; height:190px;"><canvas id="segPnlChart" role="img" aria-label="Bar chart of profit and loss by segment"></canvas></div></div>
-      <div class="panel"><div class="panel-title">Capital allocation</div>
+      <div class="panel"><div class="panel-title">Capital allocation
+        <div class="panel-title-right">
+          <div class="info-wrap">
+            <button class="info-icon" onclick="toggleInfo('info-alloc', this)">?</button>
+            <div class="info-popover" id="info-alloc">Mirrors the %_Allocation column from your Capital_Allocation sheet — how you've decided to split capital across segments, not how your trades have performed.</div>
+          </div>
+        </div>
+      </div>
         <div style="position:relative; height:190px;"><canvas id="allocChart" role="img" aria-label="Donut chart of capital allocation across segments"></canvas></div></div>
     </div>
     <div class="panel"><div class="panel-title">Top movers <span class="badge">TOP 2 WINS · TOP 2 LOSSES</span></div>
@@ -496,6 +534,19 @@
   Chart.defaults.font.size = 11;
 
   function toggleThemeMenu(){ document.getElementById('themeMenu').classList.toggle('open'); }
+  function toggleInfo(id, btn){
+    var pop = document.getElementById(id);
+    var isOpen = pop.classList.contains('open');
+    document.querySelectorAll('.info-popover.open').forEach(function(p){ p.classList.remove('open'); });
+    document.querySelectorAll('.info-icon.active').forEach(function(b){ b.classList.remove('active'); });
+    if(!isOpen){ pop.classList.add('open'); btn.classList.add('active'); }
+  }
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.info-wrap')){
+      document.querySelectorAll('.info-popover.open').forEach(function(p){ p.classList.remove('open'); });
+      document.querySelectorAll('.info-icon.active').forEach(function(b){ b.classList.remove('active'); });
+    }
+  });
   function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
   function toggleMoreMenu(){ document.getElementById('moreMenu').classList.toggle('open'); }
   document.addEventListener('click', function(e){
