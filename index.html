@@ -284,15 +284,15 @@
       <div class="panel"><div class="panel-title">Capital allocation</div>
         <div style="position:relative; height:190px;"><canvas id="allocChart" role="img" aria-label="Donut chart of capital allocation across segments"></canvas></div></div>
     </div>
-    <div class="panel"><div class="panel-title">Recent trades <span class="badge">LAST 6</span></div>
+    <div class="panel"><div class="panel-title">Top movers <span class="badge">TOP 2 WINS · TOP 2 LOSSES</span></div>
       <table><thead><tr><th>Date</th><th>Instrument</th><th>Segment</th><th>Dir</th><th>Net PnL</th><th>ROI</th></tr></thead><tbody id="recentTradesBody"></tbody></table>
     </div>
   </div>
 
   <div class="view" id="view-reports">
     <div class="filter-bar">
-      <select id="monthFilter" onchange="renderReports()"><option>All</option></select>
-      <select id="weekFilter" onchange="renderReports()"><option>All weeks</option></select>
+      <select id="monthFilter" onchange="renderReports(); renderTradePlanProgress();"><option>All</option></select>
+      <select id="weekFilter" onchange="renderReports(); renderTradePlanProgress();"><option>All weeks</option></select>
     </div>
     <div class="panel"><div class="panel-title">SWOT — performance snapshot</div>
       <div class="metric-grid">
@@ -553,6 +553,7 @@
     fetchCapitalData();
     fetchTradePlanData();
     fetchJournalData();
+    fetchRoadmapData();
   }
 
   function signOut(){
@@ -571,24 +572,132 @@
     }).then(function(r){ return r.json(); });
   }
 
+  var capitalSegments = [];
+  var totalCapitalValue = 0;
+
   function fetchCapitalData(){
     if(!idToken) return Promise.resolve();
     return fetch(WEBAPP_URL + '?token=' + encodeURIComponent(idToken) + '&action=capital')
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data.error){ alert('Error loading Capital Allocation: ' + data.error); return; }
+        totalCapitalValue = Number(data.totalCapital || 0);
+        capitalSegments = data.segments || [];
         document.getElementById('totalCapital').value = data.totalCapital || 0;
         var pctIns = document.querySelectorAll('.pct-in');
         var riskIns = document.querySelectorAll('.risk-in');
-        capitalRowMeta = (data.segments || []).map(function(s){ return s.__row; });
-        (data.segments || []).forEach(function(s, i){
+        capitalRowMeta = capitalSegments.map(function(s){ return s.__row; });
+        capitalSegments.forEach(function(s, i){
           var nameCell = document.getElementById('segname-' + i);
           if(nameCell) nameCell.textContent = s.segment;
           if(pctIns[i]) pctIns[i].value = s.pctAllocation || 0;
           if(riskIns[i]) riskIns[i].value = s.riskPct || 0;
         });
         recalcCapital();
+        renderDashboard();
       });
+  }
+
+  var roadmapData = [];
+  function fetchRoadmapData(){
+    if(!idToken) return Promise.resolve();
+    return fetch(WEBAPP_URL + '?token=' + encodeURIComponent(idToken) + '&action=roadmap')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.error){ alert('Error loading Roadmap: ' + data.error); return; }
+        roadmapData = data || [];
+        renderDashboard();
+      });
+  }
+
+  function renderDashboard(){
+    var closed = journalData.filter(isClosedRow_);
+    var wins = closed.filter(function(r){ return Number(r.Net_PnL) > 0; });
+
+    // stat cards
+    document.getElementById('statCapitalValue').textContent = fmtMoney_(totalCapitalValue).replace('-', '');
+    document.getElementById('statCapitalSub').textContent = 'Live from Capital_Allocation';
+
+    var totalProfit = closed.reduce(function(s,r){ return s + Number(r.Net_PnL || 0); }, 0);
+    var goalPct = totalProfit / 10000000 * 100;
+    document.getElementById('statGoalValue').textContent = goalPct.toFixed(2) + '%';
+    document.getElementById('statGoalSub').textContent = 'Profit to date ' + fmtMoney_(totalProfit) + ' · ' + fmtMoney_(10000000 - totalProfit) + ' remaining';
+
+    var curMonthLabel = new Date().toLocaleDateString('en-IN', {month:'short'});
+    var monthClosed = closed.filter(function(r){ return r.Month === curMonthLabel; });
+    var monthPnl = monthClosed.reduce(function(s,r){ return s + Number(r.Net_PnL || 0); }, 0);
+    var roadmapRow = roadmapData.find(function(rm){ return String(rm.month).toLowerCase().indexOf(curMonthLabel.toLowerCase()) !== -1; });
+    var target = roadmapRow ? Number(roadmapRow.plannedProfit || 0) : 0;
+    var monthEl = document.getElementById('statMonthPLValue');
+    monthEl.textContent = fmtMoney_(monthPnl);
+    monthEl.className = 'stat-value ' + (monthPnl >= 0 ? 'up' : 'down');
+    document.getElementById('statMonthPLSub').innerHTML = 'Target ' + fmtMoney_(target) + ' · <span class="' + (monthPnl >= target ? 'up' : 'down') + '">' + (monthPnl >= target ? 'achieved' : 'behind') + '</span>';
+
+    var hitRatio = closed.length ? wins.length / closed.length : 0;
+    document.getElementById('statHitRatioValue').textContent = (hitRatio * 100).toFixed(1) + '%';
+    document.getElementById('statHitRatioSub').textContent = wins.length + 'W / ' + (closed.length - wins.length) + 'L';
+
+    // equity chart (Roadmap: planned vs actual capital)
+    if(roadmapData.length){
+      charts.equity.data.labels = roadmapData.map(function(r){ return r.month; });
+      charts.equity.data.datasets[0].data = roadmapData.map(function(r){ return Number(r.plannedCapital || 0); });
+      charts.equity.data.datasets[1].data = roadmapData.map(function(r){ return Number(r.actualCapital || 0); });
+      charts.equity.update();
+    }
+
+    // win rate donut
+    charts.winrate.data.datasets[0].data = [wins.length, closed.length - wins.length];
+    charts.winrate.update();
+
+    // P&L by segment
+    var segPnl = {};
+    closed.forEach(function(r){ segPnl[r.Segment] = (segPnl[r.Segment] || 0) + Number(r.Net_PnL || 0); });
+    var segLabels = Object.keys(segPnl);
+    charts.seg.data.labels = segLabels;
+    charts.seg.data.datasets[0].data = segLabels.map(function(k){ return segPnl[k]; });
+    charts.seg.data.datasets[0].backgroundColor = segLabels.map(function(k){ return segPnl[k] >= 0 ? '#33D69A' : '#F0555F'; });
+    charts.seg.update();
+
+    // capital allocation donut
+    if(capitalSegments.length){
+      charts.alloc.data.labels = capitalSegments.map(function(s){ return s.segment + ' (' + Math.round((s.pctAllocation || 0) * 100) + '%)'; });
+      charts.alloc.data.datasets[0].data = capitalSegments.map(function(s){ return Math.round((s.pctAllocation || 0) * 100); });
+      charts.alloc.update();
+    }
+
+    // top movers: top 2 wins + top 2 losses
+    var sortedByPnl = closed.slice().sort(function(a,b){ return Number(b.Net_PnL) - Number(a.Net_PnL); });
+    var topWins = sortedByPnl.slice(0, 2);
+    var topLosses = sortedByPnl.slice(-2).reverse().filter(function(r){ return Number(r.Net_PnL) < 0; });
+    var moversBody = document.getElementById('recentTradesBody');
+    moversBody.innerHTML = '';
+    topWins.concat(topLosses).forEach(function(r){
+      var net = Number(r.Net_PnL || 0);
+      var cls = net >= 0 ? 'up' : 'down';
+      moversBody.innerHTML += '<tr><td>' + fmtDate_(r.Exit_Date || r.Entry_Date) + '</td><td>' + r.Instrument_Name + '</td>' +
+        '<td><span class="seg-tag">' + r.Segment + '</span></td><td>' + r.Direction + '</td>' +
+        '<td class="mono-num ' + cls + '">' + fmtMoney_(net) + '</td>' +
+        '<td class="mono-num ' + cls + '">' + (r.ROI !== '' && r.ROI !== undefined ? (Number(r.ROI) * 100).toFixed(1) + '%' : '—') + '</td></tr>';
+    });
+    if(!topWins.length && !topLosses.length){
+      moversBody.innerHTML = '<tr><td colspan="6" class="empty-note">No closed trades yet.</td></tr>';
+    }
+
+    // ticker
+    var segEntries = Object.keys(segPnl).map(function(k){ return [k, segPnl[k]]; }).sort(function(a,b){ return b[1] - a[1]; });
+    var best = segEntries[0], worst = segEntries[segEntries.length - 1];
+    var tickerItems = [
+      ['CAPITAL', fmtMoney_(totalCapitalValue).replace('-',''), ''],
+      ['TOTAL PROFIT', fmtMoney_(totalProfit), totalProfit >= 0 ? 'up' : 'down'],
+      ['HIT RATIO', (hitRatio * 100).toFixed(1) + '%', ''],
+      ['OPEN TRADES', String(openTrades.length), '']
+    ];
+    if(best) tickerItems.push(['BEST SEGMENT', best[0] + ' ' + fmtMoney_(best[1]), 'up']);
+    if(worst && worst !== best) tickerItems.push(['WORST SEGMENT', worst[0] + ' ' + fmtMoney_(worst[1]), worst[1] < 0 ? 'down' : '']);
+    var track = document.getElementById('tickerTrack');
+    var h = '';
+    for(var rep = 0; rep < 2; rep++){ tickerItems.forEach(function(it){ h += '<div class="ticker-item">' + it[0] + ' <b class="' + it[2] + '">' + it[1] + '</b></div>'; }); }
+    track.innerHTML = h;
   }
 
   function showTab(name){
@@ -601,7 +710,7 @@
   function doRefresh(){
     var btn = document.getElementById('refreshBtn');
     btn.classList.add('loading');
-    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData(), fetchJournalData()]) : Promise.resolve();
+    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData(), fetchJournalData(), fetchRoadmapData()]) : Promise.resolve();
     refreshTask.finally(function(){
       btn.classList.remove('loading');
       document.getElementById('asof').textContent = 'as of ' + new Date().toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -659,6 +768,7 @@
         });
         renderJournalTable();
         refreshReportsIfReady();
+        renderDashboard();
       });
   }
 
@@ -745,15 +855,30 @@
   }
 
   function renderTradePlanProgress(){
+    var month = document.getElementById('monthFilter').value;
+    var week = document.getElementById('weekFilter').value;
     var el = document.getElementById('tradePlanProgress');
-    if(!tradePlanRows.length){ el.innerHTML = '<div class="empty-note">No Trade Plan targets set yet.</div>'; return; }
+
+    var planRows = tradePlanRows.filter(function(w){
+      if(month && month !== 'All' && String(w.month).toLowerCase() !== String(month).toLowerCase()) return false;
+      if(week && week !== 'All weeks' && String(w.week).toLowerCase() !== String(week).toLowerCase()) return false;
+      return true;
+    });
+    if(!planRows.length){ el.innerHTML = '<div class="empty-note">No Trade Plan targets for this period.</div>'; return; }
+
+    var journalRows = journalData.filter(function(r){
+      if(month && month !== 'All' && r.Month !== month) return false;
+      if(week && week !== 'All weeks' && r.Week_Number !== week) return false;
+      return true;
+    });
+
     var byInstrument = {};
-    tradePlanRows.forEach(function(w){
+    planRows.forEach(function(w){
       var key = w.instrument;
       if(!byInstrument[key]) byInstrument[key] = { target: 0, actual: 0 };
       byInstrument[key].target += Number(w.points || 0);
     });
-    journalData.forEach(function(r){
+    journalRows.forEach(function(r){
       var key = r.Instrument_Name;
       if(byInstrument[key]) byInstrument[key].actual += Number(r.Points_Collected || 0);
     });
@@ -1172,68 +1297,26 @@
     }
   }
 
-  var tickerItems = [
-    ['CAPITAL', '₹7,47,475', 'up'], ['MTD P&amp;L', '+₹41,462', 'up'], ['HIT RATIO', '55.0%', ''],
-    ['OPEN RISK', '₹9,200', ''], ['AVG R-MULTIPLE', '1.9R', 'up'],
-    ['BEST SEGMENT', 'OPTIONS +₹20,700', 'up'], ['WORST SEGMENT', 'COMMODITIES -₹1,850', 'down']
-  ];
-  var track = document.getElementById('tickerTrack');
-  var htmlT = '';
-  for(var rep = 0; rep < 2; rep++){ tickerItems.forEach(function(it){ htmlT += '<div class="ticker-item">' + it[0] + ' <b class="' + it[2] + '">' + it[1] + '</b></div>'; }); }
-  track.innerHTML = htmlT;
-
-  var recent = [
-    ['27 Feb', 'NIFTY', 'Options', 'Long', 10125, 1.27, 'up'], ['26 Feb', 'BANKNIFTY', 'Options', 'Short', 3900, 0.87, 'up'],
-    ['25 Feb', 'NATGASMINI', 'Commodities', 'Long', -1375, -0.34, 'down'], ['24 Feb', 'RELIANCE', 'Equity', 'Long', 11500, 1.65, 'up'],
-    ['23 Feb', 'BANKNIFTY', 'Options', 'Long', -1200, -0.86, 'down'], ['20 Feb', 'SILVERMIC', 'Commodities', 'Short', -2750, -0.72, 'down']
-  ];
-  var rtBody = document.getElementById('recentTradesBody');
-  recent.forEach(function(r){
-    rtBody.innerHTML += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><span class="seg-tag">' + r[2] + '</span></td><td>' + r[3] + '</td>' +
-      '<td class="mono-num ' + r[6] + '">' + (r[4] < 0 ? '-' : '') + '₹' + Math.abs(r[4]).toLocaleString('en-IN') + '</td>' +
-      '<td class="mono-num ' + r[6] + '">' + (r[5] >= 0 ? '+' : '') + r[5] + 'R</td></tr>';
-  });
-
-  var allTrades = [
-    ['02 Feb','NIFTY','Index','FUT Buy',7125,1.19],['05 Feb','BANKNIFTY','Index','FUT Sell',-5700,-1.14],
-    ['18 Feb','NIFTY','Index','FUT Sell',6900,1.15],['03 Feb','NATGASMINI','Commodities','FUT Buy',2150,0.83],
-    ['10 Feb','NATGASMINI','Commodities','FUT Sell',-875,-0.35],['07 Feb','SILVERMIC','Commodities','FUT Buy',8250,1.18],
-    ['20 Feb','SILVERMIC','Commodities','FUT Sell',-2750,-0.72],['24 Feb','NATGASMINI','Commodities','FUT Buy',-1375,-0.34],
-    ['04 Feb','RELIANCE','Equity','Equity Buy',11500,1.65],['09 Feb','TCS','Equity','Equity Sell',-2750,-0.79],
-    ['13 Feb','HDFCBANK','Equity','Equity Buy',9300,1.13],['25 Feb','INFY','Equity','Equity Buy',-2800,-0.93],
-    ['06 Feb','NIFTY','Options','CE Buy',3750,1.88],['11 Feb','NIFTY','Options','CE Sell',3750,1.19],
-    ['16 Feb','NIFTY','Options','PE Buy',-2400,-0.80],['19 Feb','NIFTY','Options','PE Sell',4125,1.06],
-    ['23 Feb','BANKNIFTY','Options','CE Buy',-1200,-0.86],['26 Feb','BANKNIFTY','Options','PE Sell',-1350,-0.68],
-    ['27 Feb','BANKNIFTY','Options','CE Sell',3900,0.87],['27 Feb','NIFTY','Options','PE Buy',10125,1.27]
-  ];
-  var repBody = document.getElementById('reportsTradesBody');
-  allTrades.forEach(function(r){
-    var cls = r[4] >= 0 ? 'up' : 'down';
-    repBody.innerHTML += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><span class="seg-tag">' + r[2] + '</span></td><td>' + r[3] + '</td>' +
-      '<td class="mono-num ' + cls + '">' + (r[4] < 0 ? '-' : '') + '₹' + Math.abs(r[4]).toLocaleString('en-IN') + '</td>' +
-      '<td class="mono-num ' + cls + '">' + (r[5] >= 0 ? '+' : '') + r[5] + 'R</td></tr>';
-  });
-
   charts.equity = new Chart(document.getElementById('equityChart'), {
     type: 'line',
-    data: { labels: ['Sep','Oct','Nov','Dec','Jan','Feb'], datasets: [
-      { label:'Planned', data:[700000,735000,770000,805000,840000,875000], borderColor:'#57616F', borderDash:[4,3], pointRadius:0, borderWidth:2, tension:0.3 },
-      { label:'Actual', data:[706000,710000,720000,708000,715000,747475], borderColor:'#D9A44E', backgroundColor:'rgba(217,164,78,0.08)', fill:true, pointRadius:3, pointBackgroundColor:'#D9A44E', borderWidth:2, tension:0.3 }
+    data: { labels: [], datasets: [
+      { label:'Planned', data:[], borderColor:'#57616F', borderDash:[4,3], pointRadius:0, borderWidth:2, tension:0.3 },
+      { label:'Actual', data:[], borderColor:'#D9A44E', backgroundColor:'rgba(217,164,78,0.08)', fill:true, pointRadius:3, pointBackgroundColor:'#D9A44E', borderWidth:2, tension:0.3 }
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
       scales:{ y:{ grid:{color:'#232C38'}, ticks:{callback:function(v){return '₹'+(v/1000)+'k';}} }, x:{ grid:{display:false} } } }
   });
   charts.winrate = new Chart(document.getElementById('winRateChart'), {
-    type:'doughnut', data:{ labels:['Wins','Losses'], datasets:[{ data:[11,9], backgroundColor:['#33D69A','#F0555F'], borderColor:'#121821', borderWidth:3 }] },
+    type:'doughnut', data:{ labels:['Wins','Losses'], datasets:[{ data:[0,0], backgroundColor:['#33D69A','#F0555F'], borderColor:'#121821', borderWidth:3 }] },
     options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{ display:false } } }
   });
   charts.seg = new Chart(document.getElementById('segPnlChart'), {
-    type:'bar', data:{ labels:['Index','Commodities','Equity','Options'], datasets:[{ data:[8325, 5400, 15250, 20700], backgroundColor:['#33D69A','#33D69A','#33D69A','#33D69A'], borderRadius:4, maxBarThickness:28 }] },
+    type:'bar', data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderRadius:4, maxBarThickness:28 }] },
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
       scales:{ x:{ grid:{color:'#232C38'}, ticks:{callback:function(v){return '₹'+(v/1000)+'k';}} }, y:{ grid:{display:false} } } }
   });
   charts.alloc = new Chart(document.getElementById('allocChart'), {
-    type:'doughnut', data:{ labels:['Index (0%)','Commodities (25%)','Equity (30%)','Options (45%)'], datasets:[{ data:[0,25,30,45], backgroundColor:['#33404F','#3987E5','#33D69A','#D9A44E'], borderColor:'#121821', borderWidth:3 }] },
+    type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:['#33404F','#3987E5','#33D69A','#D9A44E','#8E6FD1'], borderColor:'#121821', borderWidth:3 }] },
     options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ display:false } } }
   });
 
