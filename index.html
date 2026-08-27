@@ -438,10 +438,16 @@
         <div class="form-grid">
           <div class="field"><label>Entry date</label><input type="date" id="f_entrydate"></div>
           <div class="field"><label>Entry time</label><input type="time" id="f_entrytime"></div>
-          <div class="field"><label>Segment</label><select id="f_segment"><option value="">— select —</option><option>Index</option><option>Commodities</option><option>Equity</option><option>Options</option></select></div>
-          <div class="field"><label>Instrument</label><input type="text" id="f_instrument" placeholder="e.g. NIFTY, RELIANCE"></div>
-          <div class="field"><label>Trade type</label><select id="f_tradetype"><option value="">— select —</option><option>Intraday</option><option>Positional</option><option>Bu-Swing</option><option>Be-Swing</option></select></div>
-          <div class="field"><label>Strategy type</label><select id="f_strategytype"><option value="">— select —</option><option>Equity Buy</option><option>Equity Sell</option><option>CE Buy</option><option>CE Sell</option><option>PE Buy</option><option>PE Sell</option><option>FUT Buy</option><option>FUT Sell</option></select></div>
+          <div class="field span3"><label>Instrument traded</label><input type="text" id="f_instrumenttraded" placeholder="e.g. NATGASMINI23SEP26300CE, RELIANCE" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase(); onInstrumentTradedInput();"></div>
+
+          <div class="field span3" id="manualFallback" style="display:none;">
+            <div class="form-note" style="margin:0 0 8px; color:var(--loss);">Couldn't auto-detect this instrument — pick these manually:</div>
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+              <div class="field"><label>Segment</label><select id="f_segment" onchange="updateMaxRiskNote()"><option value="">— select —</option><option>IND-FNO</option><option>COMM-FNO</option><option>Equity</option><option>Equity-FNO</option></select></div>
+              <div class="field"><label>Instrument name</label><input type="text" id="f_instrument" placeholder="e.g. NIFTY" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();"></div>
+              <div class="field"><label>Strategy type</label><select id="f_strategytype_manual"><option value="">— select —</option><option>Equity Buy</option><option>Equity Sell</option><option>CE Buy</option><option>CE Sell</option><option>PE Buy</option><option>PE Sell</option><option>FUT Buy</option><option>FUT Sell</option></select></div>
+            </div>
+          </div>
 
           <div class="field span3"><label>Direction</label>
             <div class="direction-toggle">
@@ -450,22 +456,45 @@
             </div>
           </div>
 
+          <div class="field"><label>Wave TF</label><select id="f_wavetf"><option value="">— select —</option><option>5m</option><option>15m</option><option>1H</option><option>4H</option><option>D</option><option>W</option><option>M</option></select></div>
+          <div class="field span2"><label>Context / setup notes</label><input type="text" id="f_context" placeholder="Why you took the trade" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();"></div>
+
           <div class="field"><label>Entry price</label><input type="number" id="f_entry"></div>
-          <div class="field"><label>Stop loss</label><input type="number" id="f_sl"></div>
+          <div class="field">
+            <label>Stop loss</label>
+            <input type="number" id="f_sl" oninput="updateMaxRiskNote()">
+            <div class="form-note" id="maxRiskNote" style="margin-top:4px;"></div>
+          </div>
           <div class="field"><label>Target price</label><input type="number" id="f_target"></div>
 
-          <div class="field"><label>Quantity</label><input type="number" id="f_qty"></div>
-          <div class="field"><label>Margin used</label><input type="number" id="f_margin"></div>
+          <div class="field span3">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="f_alreadyclosed" onchange="toggleAlreadyClosed()" style="width:auto;">
+              Already closed? (fill exit details now instead of using Close Open Trade later)
+            </label>
+          </div>
+          <div class="field span3" id="inlineExitFields" style="display:none;">
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+              <div class="field"><label>Exit date</label><input type="date" id="f_exitdate_inline"></div>
+              <div class="field"><label>Exit price</label><input type="number" id="f_exitprice_inline" oninput="calcInlinePnl()"></div>
+              <div class="field"><label>Brokerage &amp; taxes</label><input type="number" id="f_brok_inline" oninput="calcInlinePnl()"></div>
+            </div>
+            <div class="pnl-preview" style="margin-top:10px;">
+              <div><div class="label">Live net P&amp;L preview</div></div>
+              <div class="value up" id="inlinePnlPreview">₹0</div>
+            </div>
+          </div>
+
+          <div class="field"><label>Quantity</label><input type="number" id="f_qty" oninput="updateMaxRiskNote()"></div>
+          <div class="field"><label>Margin used*</label><input type="number" id="f_margin"></div>
           <div class="field"><label>Broker</label><select id="f_broker"><option value="">— select —</option><option>Zerodha</option><option>Kotak</option><option>Upstox</option></select></div>
 
           <div class="field"><label>Emotions check</label><select id="f_emotions"><option value="">— select —</option><option>Calm</option><option>FOMO</option><option>Revenge</option><option>Confident</option><option>Anxious</option></select></div>
-          <div class="field span2"><label>Market condition</label><select id="f_marketcondition"><option value="">— select —</option><option>Trending Up</option><option>Trending Down</option><option>Sideways</option><option>Choppy</option></select></div>
-
-          <div class="field span3"><label>Context / setup notes</label><textarea id="f_context" rows="2" placeholder="Why you took the trade"></textarea></div>
+          <div class="field span2"><label>Chart URL</label><input type="text" id="f_charturl" placeholder="TradingView link"></div>
         </div>
 
         <button class="submit-btn" type="button" onclick="submitNewTrade()">SUBMIT TRADE →</button>
-        <div class="form-note" id="newTradeStatus">Adds a row to Trade_Journal with no exit info — close it later from "Close Open Trade." Formula columns (Max_Risk_INR, Lot_Size, Points_Collected, R_Multiple, ROI) calculate automatically.</div>
+        <div class="form-note" id="newTradeStatus">*Margin Used is approximate. Formula columns (Max_Risk_INR, Lot_Size, Points_Collected, R_Multiple, ROI) calculate automatically.</div>
       </div>
 
       <div id="closeTradePane" style="display:none;">
@@ -611,6 +640,7 @@
     fetchTradePlanData();
     fetchJournalData();
     fetchRoadmapData();
+    fetchConfigData();
   }
 
   function signOut(){
@@ -627,6 +657,59 @@
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ token: idToken, action: action, payload: payload })
     }).then(function(r){ return r.json(); });
+  }
+
+  var configInstruments = [];
+  var instrumentTypeMap = {}; // Instrument_Name -> Instrument_Type (Index/Commodities/Stocks)
+  var sortedInstrumentNames = []; // longest-first, for prefix matching
+
+  function fetchConfigData(){
+    if(!idToken) return Promise.resolve();
+    return fetch(WEBAPP_URL + '?token=' + encodeURIComponent(idToken) + '&action=config')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.error){ alert('Error loading Config: ' + data.error); return; }
+        configInstruments = data || [];
+        instrumentTypeMap = {};
+        configInstruments.forEach(function(row){
+          if(row.Instrument_Name) instrumentTypeMap[row.Instrument_Name] = row.Instrument_Type;
+        });
+        sortedInstrumentNames = Object.keys(instrumentTypeMap).sort(function(a,b){ return b.length - a.length; });
+      });
+  }
+
+  // Parses e.g. "NATGASMINI23SEP26300CE" -> {instrumentName, instrumentType, suffix, segment}
+  // Returns null if no known instrument prefix matches.
+  function parseInstrumentTraded(str){
+    if(!str) return null;
+    str = str.toUpperCase().trim();
+    var matchName = null;
+    for(var i = 0; i < sortedInstrumentNames.length; i++){
+      if(str.indexOf(sortedInstrumentNames[i]) === 0){ matchName = sortedInstrumentNames[i]; break; }
+    }
+    if(!matchName) return null;
+
+    var suffix = null;
+    if(str.slice(-2) === 'CE') suffix = 'CE';
+    else if(str.slice(-2) === 'PE') suffix = 'PE';
+    else if(str.slice(-3) === 'FUT') suffix = 'FUT';
+
+    var instrumentType = instrumentTypeMap[matchName]; // Index / Commodities / Stocks
+    var segment;
+    if(instrumentType === 'Index') segment = 'IND-FNO';
+    else if(instrumentType === 'Commodities') segment = 'COMM-FNO';
+    else if(instrumentType === 'Stocks') segment = suffix ? 'Equity-FNO' : 'Equity';
+    else segment = '';
+
+    return { instrumentName: matchName, instrumentType: instrumentType, suffix: suffix, segment: segment };
+  }
+
+  function strategyTypeFor(suffix, direction){
+    var verb = direction === 'Short' ? 'Sell' : 'Buy';
+    if(suffix === 'CE') return 'CE ' + verb;
+    if(suffix === 'PE') return 'PE ' + verb;
+    if(suffix === 'FUT') return 'FUT ' + verb;
+    return 'Equity ' + verb;
   }
 
   var capitalSegments = [];
@@ -767,7 +850,7 @@
   function doRefresh(){
     var btn = document.getElementById('refreshBtn');
     btn.classList.add('loading');
-    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData(), fetchJournalData(), fetchRoadmapData()]) : Promise.resolve();
+    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData(), fetchJournalData(), fetchRoadmapData(), fetchConfigData()]) : Promise.resolve();
     refreshTask.finally(function(){
       btn.classList.remove('loading');
       document.getElementById('asof').textContent = 'as of ' + new Date().toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -1096,25 +1179,68 @@
   }
 
   var POPUP_SCRIPT = [
-    '// ---- shared with opener: opener.postAction, opener.fetchJournalData, opener.openTrades ----',
+    '// ---- shared with opener: opener.postAction, opener.fetchJournalData, opener.openTrades, opener.parseInstrumentTraded, opener.strategyTypeFor, opener.capitalSegments, opener.totalCapitalValue ----',
     'var direction = "Long";',
     'var selectedTradeIdx = null;',
     'var parsedBulkRows = [];',
+    'var resolvedSegment = "", resolvedInstrumentName = "", resolvedStrategyType = "";',
     '',
     'function setSelectByText(id, text){ var sel = document.getElementById(id); if(!sel || !text) return; for(var i=0;i<sel.options.length;i++){ if(sel.options[i].text === text){ sel.selectedIndex = i; return; } } }',
     'function fmtDateForInput(d){ if(!d) return ""; var dt = new Date(d); if(isNaN(dt)) return ""; return dt.toISOString().slice(0,10); }',
     '',
-    'function setDirection(d){ direction = d; document.getElementById("btnLong").classList.toggle("active", d==="Long"); document.getElementById("btnShort").classList.toggle("active", d==="Short"); }',
+    'function onInstrumentTradedInput(){',
+    '  var val = document.getElementById("f_instrumenttraded").value;',
+    '  var parsed = opener.parseInstrumentTraded(val);',
+    '  var fallback = document.getElementById("manualFallback");',
+    '  if(parsed){',
+    '    resolvedSegment = parsed.segment; resolvedInstrumentName = parsed.instrumentName;',
+    '    resolvedStrategyType = opener.strategyTypeFor(parsed.suffix, direction);',
+    '    fallback.style.display = "none";',
+    '  } else {',
+    '    resolvedSegment = ""; resolvedInstrumentName = ""; resolvedStrategyType = "";',
+    '    fallback.style.display = val ? "block" : "none";',
+    '  }',
+    '  updateMaxRiskNote();',
+    '}',
+    'function updateMaxRiskNote(){',
+    '  var segEl = document.getElementById("f_segment");',
+    '  var segment = resolvedSegment || (segEl ? segEl.value : "");',
+    '  var note = document.getElementById("maxRiskNote");',
+    '  if(!segment || !opener.capitalSegments || !opener.capitalSegments.length){ note.textContent = ""; return; }',
+    '  var seg = opener.capitalSegments.find(function(s){ return s.segment === segment; });',
+    '  if(!seg){ note.textContent = ""; return; }',
+    '  var allocated = opener.totalCapitalValue * (Number(seg.pctAllocation) || 0);',
+    '  var maxRisk = allocated * (Number(seg.riskPct) || 0);',
+    '  note.textContent = "Max risk allowed for " + segment + ": \u20b9" + Math.round(maxRisk).toLocaleString("en-IN");',
+    '}',
+    '',
+    'function setDirection(d){ direction = d; document.getElementById("btnLong").classList.toggle("active", d==="Long"); document.getElementById("btnShort").classList.toggle("active", d==="Short"); onInstrumentTradedInput(); }',
+    '',
+    'function toggleAlreadyClosed(){',
+    '  var checked = document.getElementById("f_alreadyclosed").checked;',
+    '  document.getElementById("inlineExitFields").style.display = checked ? "block" : "none";',
+    '}',
+    'function calcInlinePnl(){',
+    '  var entry = parseFloat(document.getElementById("f_entry").value) || 0;',
+    '  var exit = parseFloat(document.getElementById("f_exitprice_inline").value) || 0;',
+    '  var qty = parseFloat(document.getElementById("f_qty").value) || 0;',
+    '  var brok = parseFloat(document.getElementById("f_brok_inline").value) || 0;',
+    '  var diff = direction === "Long" ? (exit - entry) : (entry - exit);',
+    '  var net = diff * qty - brok;',
+    '  var el = document.getElementById("inlinePnlPreview");',
+    '  el.textContent = (net<0?"-":"") + "\u20b9" + Math.abs(Math.round(net)).toLocaleString("en-IN");',
+    '  el.className = "value " + (net>=0?"up":"down");',
+    '}',
     '',
     'function applyPrefill(){',
     '  if(!PREFILL) return;',
     '  document.getElementById("f_entrydate").value = fmtDateForInput(PREFILL.Entry_Date);',
     '  document.getElementById("f_entrytime").value = PREFILL.Entry_Time || "";',
-    '  setSelectByText("f_segment", PREFILL.Segment);',
-    '  document.getElementById("f_instrument").value = PREFILL.Instrument_Name || "";',
-    '  setSelectByText("f_tradetype", PREFILL.Trade_Type);',
-    '  setSelectByText("f_strategytype", PREFILL.Strategy_Type);',
+    '  document.getElementById("f_instrumenttraded").value = PREFILL.Instrument_Traded || "";',
     '  setDirection(PREFILL.Direction === "Short" ? "Short" : "Long");',
+    '  onInstrumentTradedInput();',
+    '  setSelectByText("f_wavetf", PREFILL.Wave_TF);',
+    '  document.getElementById("f_context").value = PREFILL.Context || "";',
     '  document.getElementById("f_entry").value = PREFILL.Entry_Price || "";',
     '  document.getElementById("f_sl").value = PREFILL.Stop_Loss || "";',
     '  document.getElementById("f_target").value = PREFILL.Target_Price || "";',
@@ -1122,24 +1248,29 @@
     '  document.getElementById("f_margin").value = PREFILL.Margin_Used || "";',
     '  setSelectByText("f_broker", PREFILL.Broker);',
     '  setSelectByText("f_emotions", PREFILL.Emotions_Check);',
-    '  setSelectByText("f_marketcondition", PREFILL.Market_Condition);',
-    '  document.getElementById("f_context").value = PREFILL.Context || "";',
-    '  setDirection(PREFILL.Direction === "Short" ? "Short" : "Long");',
+    '  document.getElementById("f_charturl").value = PREFILL.Chart_Link || "";',
+    '  updateMaxRiskNote();',
     '  var btn = document.querySelector("#singleEntryPane .submit-btn");',
     '  if(btn) btn.textContent = "SAVE CHANGES \u2192";',
-    '  document.getElementById("newTradeStatus").textContent = "Editing " + PREFILL.Trade_ID + ". Only entry-side details are edited here \u2014 exit info is handled from Close Open Trade. Dropdown fields not in this trade\'s exact option list may reset to the default.";',
+    '  document.getElementById("newTradeStatus").textContent = "Editing " + PREFILL.Trade_ID + ". Only entry-side details are edited here \u2014 exit info is handled from Close Open Trade.";',
     '}',
     '',
     'function buildNewTradePayload(){',
-    '  return {',
+    '  var segEl = document.getElementById("f_segment");',
+    '  var instrEl = document.getElementById("f_instrument");',
+    '  var stratEl = document.getElementById("f_strategytype_manual");',
+    '  var segment = resolvedSegment || (segEl ? segEl.value : "");',
+    '  var instrumentName = resolvedInstrumentName || (instrEl ? instrEl.value : "");',
+    '  var strategyType = resolvedStrategyType || (stratEl ? stratEl.value : "");',
+    '  var p = {',
     '    entryDate: document.getElementById("f_entrydate").value,',
     '    entryTime: document.getElementById("f_entrytime").value,',
-    '    segment: document.getElementById("f_segment").value,',
-    '    instrument: document.getElementById("f_instrument").value,',
-    '    instrumentTraded: document.getElementById("f_instrument").value,',
-    '    tradeType: document.getElementById("f_tradetype").value,',
-    '    strategyType: document.getElementById("f_strategytype").value,',
+    '    segment: segment,',
+    '    instrument: instrumentName,',
+    '    instrumentTraded: document.getElementById("f_instrumenttraded").value,',
+    '    strategyType: strategyType,',
     '    direction: direction,',
+    '    waveTf: document.getElementById("f_wavetf").value,',
     '    entryPrice: parseFloat(document.getElementById("f_entry").value) || 0,',
     '    stopLoss: document.getElementById("f_sl").value ? parseFloat(document.getElementById("f_sl").value) : "",',
     '    targetPrice: document.getElementById("f_target").value ? parseFloat(document.getElementById("f_target").value) : "",',
@@ -1147,24 +1278,34 @@
     '    marginUsed: parseFloat(document.getElementById("f_margin").value) || 0,',
     '    broker: document.getElementById("f_broker").value,',
     '    emotions: document.getElementById("f_emotions").value,',
-    '    marketCondition: document.getElementById("f_marketcondition").value,',
+    '    chartUrl: document.getElementById("f_charturl").value,',
     '    context: document.getElementById("f_context").value,',
     '    notes: document.getElementById("f_context").value',
     '  };',
+    '  if(document.getElementById("f_alreadyclosed") && document.getElementById("f_alreadyclosed").checked){',
+    '    var exit = parseFloat(document.getElementById("f_exitprice_inline").value) || 0;',
+    '    var gross = (direction === "Long" ? (exit - p.entryPrice) : (p.entryPrice - exit)) * p.quantity;',
+    '    p.exitDate = document.getElementById("f_exitdate_inline").value;',
+    '    p.exitPrice = exit;',
+    '    p.brokerage = parseFloat(document.getElementById("f_brok_inline").value) || 0;',
+    '    p.grossPnl = gross;',
+    '  }',
+    '  return p;',
     '}',
     'function mapToHeaderFields(p){',
     '  return {',
     '    Entry_Date: p.entryDate, Entry_Time: p.entryTime, Segment: p.segment, Instrument_Name: p.instrument,',
-    '    Instrument_Traded: p.instrumentTraded, Trade_Type: p.tradeType, Strategy_Type: p.strategyType, Direction: p.direction,',
+    '    Instrument_Traded: p.instrumentTraded, Strategy_Type: p.strategyType, Direction: p.direction, Wave_TF: p.waveTf,',
     '    Entry_Price: p.entryPrice, Stop_Loss: p.stopLoss, Target_Price: p.targetPrice, Quantity: p.quantity,',
     '    Margin_Used: p.marginUsed, Broker: p.broker, Emotions_Check: p.emotions,',
-    '    Market_Condition: p.marketCondition, Context: p.context, Notes: p.notes',
+    '    Context: p.context, Notes: p.notes, Chart_Link: p.chartUrl',
     '  };',
     '}',
     'function submitNewTrade(){',
     '  var status = document.getElementById("newTradeStatus");',
     '  var payload = buildNewTradePayload();',
-    '  if(!payload.entryDate || !payload.instrument){ status.textContent = "Entry date and Instrument are required."; status.style.color = "var(--loss)"; return; }',
+    '  if(!payload.entryDate || !payload.instrumentTraded){ status.textContent = "Entry date and Instrument traded are required."; status.style.color = "var(--loss)"; return; }',
+    '  if(!payload.segment || !payload.instrument){ status.textContent = "Couldn\'t resolve Segment/Instrument \u2014 fill the manual fallback fields."; status.style.color = "var(--loss)"; return; }',
     '  status.textContent = "Saving\u2026"; status.style.color = "";',
     '  var action = PREFILL ? "editTrade" : "newTrade";',
     '  var body = PREFILL ? { tradeId: PREFILL.Trade_ID, fields: mapToHeaderFields(payload) } : payload;',
@@ -1232,9 +1373,9 @@
     '}',
     '',
     'function downloadBulkTemplate(){',
-    '  var headers = ["entryDate","entryTime","segment","instrument","tradeType","strategyType","direction","entryPrice","stopLoss","targetPrice","quantity","marginUsed","broker","emotions","marketCondition","context","exitDate","exitPrice","brokerage","grossPnl"];',
-    '  var example = ["2026-08-20","09:30","Equity","RELIANCE","Positional","Equity Buy","Long","2450","2400","2580","100","245000","Zerodha","Confident","Trending Up","Post-earnings breakout","2026-08-25","2565","220","11500"];',
-    '  var note = ["# Leave exitDate/exitPrice/brokerage/grossPnl blank for a trade that\'s still open \u2014 close it later from the app.",""];',
+    '  var headers = ["entryDate","entryTime","instrumentTraded","direction","waveTf","context","entryPrice","stopLoss","targetPrice","quantity","marginUsed","broker","emotions","chartUrl","exitDate","exitPrice","brokerage","grossPnl"];',
+    '  var example = ["2026-08-20","09:30","NATGASMINI23SEP26300CE","Long","1H","POST-EARNINGS BREAKOUT","245","240","258","250","45000","Zerodha","Confident","","2026-08-25","253","220",""];',
+    '  var note = ["# instrumentTraded is auto-parsed for Segment/Instrument/Strategy \u2014 no need to specify those separately. Leave exitDate/exitPrice/brokerage/grossPnl blank for a trade that\'s still open.",""];',
     '  var csv = headers.join(",") + "\\n" + example.join(",") + "\\n" + note[0] + "\\n";',
     '  var blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});',
     '  var link = document.createElement("a");',
@@ -1265,20 +1406,33 @@
     '  document.getElementById("previewSummary").textContent = filename+" \u2014 "+body.length+" trade row(s) detected"+(body.length>10?" (showing first 10)":"");',
     '  document.getElementById("previewWrap").classList.add("show");',
     '}',
+    'function resolveRowFields(row){',
+    '  if(!row.segment || !row.instrument || !row.strategyType){',
+    '    var parsed = opener.parseInstrumentTraded(row.instrumentTraded);',
+    '    if(parsed){',
+    '      row.segment = row.segment || parsed.segment;',
+    '      row.instrument = row.instrument || parsed.instrumentName;',
+    '      row.strategyType = row.strategyType || opener.strategyTypeFor(parsed.suffix, row.direction);',
+    '    }',
+    '  }',
+    '  return row;',
+    '}',
     'function submitBulkUpload(){',
     '  var status = document.getElementById("bulkUploadStatus");',
     '  var total = parsedBulkRows.length;',
     '  if(!total){ status.textContent = "No rows parsed yet."; return; }',
-    '  var done = 0, failed = 0;',
+    '  var done = 0, failed = 0, failedReasons = [];',
     '  function next(i){',
     '    if(i >= total){',
-    '      status.textContent = "Done \u2014 " + done + " / " + total + " uploaded" + (failed ? (", " + failed + " failed") : "") + ".";',
+    '      status.textContent = "Done \u2014 " + done + " / " + total + " uploaded" + (failed ? (", " + failed + " failed: " + failedReasons.join("; ")) : "") + ".";',
     '      opener.fetchJournalData();',
     '      return;',
     '    }',
     '    status.textContent = "Uploading " + (i+1) + " / " + total + "\u2026";',
-    '    opener.postAction("newTrade", parsedBulkRows[i]).then(function(res){',
-    '      if(res.error){ failed++; } else { done++; }',
+    '    var row = resolveRowFields(parsedBulkRows[i]);',
+    '    if(!row.segment || !row.instrument){ failed++; failedReasons.push("row " + (i+1) + ": couldn\'t resolve instrument"); next(i+1); return; }',
+    '    opener.postAction("newTrade", row).then(function(res){',
+    '      if(res.error){ failed++; failedReasons.push(res.error); } else { done++; }',
     '      next(i+1);',
     '    }).catch(function(){ failed++; next(i+1); });',
     '  }',
@@ -1296,6 +1450,7 @@
     '});',
     '',
     'renderOpenTrades();',
+    'if(!PREFILL){ var _now = new Date(); document.getElementById("f_entrydate").value = _now.toISOString().slice(0,10); document.getElementById("f_entrytime").value = _now.toTimeString().slice(0,5); }',
     'applyPrefill();'
   ].join('\n');
 
