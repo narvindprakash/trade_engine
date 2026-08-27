@@ -134,6 +134,9 @@
   .status-missed{background:var(--loss-dim); color:var(--loss); border:1px solid var(--loss);}
 
   .edit-table input{width:100%; padding:6px 7px; font-size:12px; background:var(--bg-panel-alt); border:1px solid var(--border-strong); border-radius:3px; color:var(--text-primary);}
+  .pct-field{display:flex; align-items:center; gap:6px;}
+  .pct-field input{width:100%;}
+  .pct-suffix{color:var(--text-muted); font-size:12px; flex-shrink:0;}
   .edit-table td.readout{font-family:var(--mono); color:var(--text-primary); font-weight:500;}
   .check-ok{color:var(--profit); font-weight:600;} .check-bad{color:var(--loss); font-weight:600;}
   .total-cap-row{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
@@ -268,7 +271,7 @@
   <div class="view active" id="view-dashboard">
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-label">Current Capital</div><div class="stat-value" id="statCapitalValue">₹7,47,475</div><div class="stat-sub up" id="statCapitalSub">▲ +6.8% vs start</div></div>
-      <div class="stat-card"><div class="stat-label">% to ₹1Cr Goal</div><div class="stat-value" id="statGoalValue">0.47%</div><div class="stat-sub" id="statGoalSub">Profit to date ₹47,475 · ₹99,52,525 remaining</div></div>
+      <div class="stat-card"><div class="stat-label">Journey to 1 Cr</div><div class="stat-value" id="statGoalValue">0.47%</div><div class="stat-sub" id="statGoalSub">₹99,52,525 remaining</div></div>
       <div class="stat-card"><div class="stat-label">Month P&amp;L vs Target</div><div class="stat-value up" id="statMonthPLValue">₹41,462</div><div class="stat-sub" id="statMonthPLSub">Target ₹35,000 · <span class="up">achieved</span></div></div>
       <div class="stat-card"><div class="stat-label">Hit Ratio</div><div class="stat-value" id="statHitRatioValue">55.0%</div><div class="stat-sub" id="statHitRatioSub">11W / 9L</div></div>
     </div>
@@ -324,14 +327,14 @@
       <table class="edit-table">
         <thead><tr><th>Segment</th><th>%_Allocation</th><th>Allocated_Capital</th><th>Risk_%_Per_Trade</th><th>Max_Risk_Per_Trade</th></tr></thead>
         <tbody id="capitalBody">
-          <tr><td class="seg-name" id="segname-0">Index</td><td><input type="number" step="0.01" class="pct-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="alloc-0">—</td><td><input type="number" step="0.001" class="risk-in" value="0" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-0">—</td></tr>
-          <tr><td class="seg-name" id="segname-1">Commodities</td><td><input type="number" step="0.01" class="pct-in" value="0.25" oninput="recalcCapital()"></td><td class="readout" id="alloc-1">—</td><td><input type="number" step="0.001" class="risk-in" value="0.02" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-1">—</td></tr>
-          <tr><td class="seg-name" id="segname-2">Equity</td><td><input type="number" step="0.01" class="pct-in" value="0.30" oninput="recalcCapital()"></td><td class="readout" id="alloc-2">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-2">—</td></tr>
-          <tr><td class="seg-name" id="segname-3">Options</td><td><input type="number" step="0.01" class="pct-in" value="0.45" oninput="recalcCapital()"></td><td class="readout" id="alloc-3">—</td><td><input type="number" step="0.001" class="risk-in" value="0.01" oninput="recalcCapital()"></td><td class="readout" id="maxrisk-3">—</td></tr>
+          <tr><td class="seg-name" id="segname-0">Index</td><td><div class="pct-field"><input type="number" step="0.1" class="pct-in" value="0" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="alloc-0">—</td><td><div class="pct-field"><input type="number" step="0.01" class="risk-in" value="0" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="maxrisk-0">—</td></tr>
+          <tr><td class="seg-name" id="segname-1">Commodities</td><td><div class="pct-field"><input type="number" step="0.1" class="pct-in" value="25" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="alloc-1">—</td><td><div class="pct-field"><input type="number" step="0.01" class="risk-in" value="2" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="maxrisk-1">—</td></tr>
+          <tr><td class="seg-name" id="segname-2">Equity</td><td><div class="pct-field"><input type="number" step="0.1" class="pct-in" value="30" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="alloc-2">—</td><td><div class="pct-field"><input type="number" step="0.01" class="risk-in" value="1" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="maxrisk-2">—</td></tr>
+          <tr><td class="seg-name" id="segname-3">Options</td><td><div class="pct-field"><input type="number" step="0.1" class="pct-in" value="45" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="alloc-3">—</td><td><div class="pct-field"><input type="number" step="0.01" class="risk-in" value="1" oninput="recalcCapital()"><span class="pct-suffix">%</span></div></td><td class="readout" id="maxrisk-3">—</td></tr>
           <tr><td style="font-weight:600;">Total_%_Check</td><td class="readout" id="pctCheck" colspan="4">—</td></tr>
         </tbody>
       </table>
-      <div class="form-note">% Allocation is entered as a decimal (0.25 = 25%). Allocated_Capital and Max_Risk_Per_Trade update as you type — this mirrors the live formulas in your Google Sheet.</div>
+      <div class="form-note">%_Allocation and Risk_%_Per_Trade are entered as whole percentages (40 = 40%, 1.5 = 1.5%). Allocated_Capital and Max_Risk_Per_Trade update as you type — this mirrors the live formulas in your Google Sheet.</div>
       <button class="submit-btn" type="button" onclick="saveCapitalAllocation()">SAVE CHANGES</button>
       <span class="form-note" id="capitalSavedNote" style="margin-left:12px; display:inline-block;"></span>
     </div>
@@ -476,6 +479,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   var THEME_PALETTES = {
@@ -486,6 +490,8 @@
   var currentTheme = 'dark';
   var charts = {};
 
+  Chart.register(ChartDataLabels);
+  Chart.defaults.set('plugins.datalabels', { display: false });
   Chart.defaults.font.family = "'IBM Plex Mono', monospace";
   Chart.defaults.font.size = 11;
 
@@ -590,8 +596,8 @@
         capitalSegments.forEach(function(s, i){
           var nameCell = document.getElementById('segname-' + i);
           if(nameCell) nameCell.textContent = s.segment;
-          if(pctIns[i]) pctIns[i].value = s.pctAllocation || 0;
-          if(riskIns[i]) riskIns[i].value = s.riskPct || 0;
+          if(pctIns[i]) pctIns[i].value = (Number(s.pctAllocation) || 0) * 100;
+          if(riskIns[i]) riskIns[i].value = (Number(s.riskPct) || 0) * 100;
         });
         recalcCapital();
         renderDashboard();
@@ -621,7 +627,7 @@
     var totalProfit = closed.reduce(function(s,r){ return s + Number(r.Net_PnL || 0); }, 0);
     var goalPct = totalProfit / 10000000 * 100;
     document.getElementById('statGoalValue').textContent = goalPct.toFixed(2) + '%';
-    document.getElementById('statGoalSub').textContent = 'Profit to date ' + fmtMoney_(totalProfit) + ' · ' + fmtMoney_(10000000 - totalProfit) + ' remaining';
+    document.getElementById('statGoalSub').textContent = fmtMoney_(10000000 - totalProfit) + ' remaining';
 
     var curMonthLabel = new Date().toLocaleDateString('en-IN', {month:'short'});
     var monthClosed = closed.filter(function(r){ return r.Month === curMonthLabel; });
@@ -639,7 +645,7 @@
 
     // equity chart (Roadmap: planned vs actual capital)
     if(roadmapData.length){
-      charts.equity.data.labels = roadmapData.map(function(r){ return r.month; });
+      charts.equity.data.labels = roadmapData.map(function(r){ return fmtMonthShort_(r.month); });
       charts.equity.data.datasets[0].data = roadmapData.map(function(r){ return Number(r.plannedCapital || 0); });
       charts.equity.data.datasets[1].data = roadmapData.map(function(r){ return Number(r.actualCapital || 0); });
       charts.equity.update();
@@ -725,7 +731,7 @@
     var pctIns = document.querySelectorAll('.pct-in');
     var riskIns = document.querySelectorAll('.risk-in');
     var segments = capitalRowMeta.map(function(row, i){
-      return { __row: row, pctAllocation: parseFloat(pctIns[i].value) || 0, riskPct: parseFloat(riskIns[i].value) || 0 };
+      return { __row: row, pctAllocation: (parseFloat(pctIns[i].value) || 0) / 100, riskPct: (parseFloat(riskIns[i].value) || 0) / 100 };
     });
     var totalCapital = parseFloat(document.getElementById('totalCapital').value) || 0;
 
@@ -751,6 +757,13 @@
 
   function isClosedRow_(r){ return r.Exit_Price !== '' && r.Exit_Price !== null && r.Exit_Price !== undefined; }
   function fmtMoney_(n){ n = Number(n) || 0; return (n < 0 ? '-' : '') + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); }
+  function fmtMonthShort_(d){
+    var dt = new Date(d);
+    if(isNaN(dt)) return String(d);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[dt.getMonth()] + String(dt.getFullYear()).slice(-2);
+  }
+
   function fmtDate_(d){ if(!d) return ''; var dt = new Date(d); if(isNaN(dt)) return String(d); return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}); }
 
   function fetchJournalData(){
@@ -1241,17 +1254,17 @@
     var riskIns = document.querySelectorAll('.risk-in');
     var pctSum = 0;
     pctIns.forEach(function(inp, i){
-      var pct = parseFloat(inp.value) || 0;
-      var risk = parseFloat(riskIns[i].value) || 0;
-      var allocated = total * pct;
-      var maxRisk = allocated * risk;
+      var pct = parseFloat(inp.value) || 0; // whole percent, e.g. 40 = 40%
+      var risk = parseFloat(riskIns[i].value) || 0; // whole percent, e.g. 1.5 = 1.5%
+      var allocated = total * (pct / 100);
+      var maxRisk = allocated * (risk / 100);
       document.getElementById('alloc-' + i).textContent = '₹' + Math.round(allocated).toLocaleString('en-IN');
       document.getElementById('maxrisk-' + i).textContent = '₹' + Math.round(maxRisk).toLocaleString('en-IN');
       pctSum += pct;
     });
     var checkEl = document.getElementById('pctCheck');
-    var pctDisplay = (pctSum * 100).toFixed(1) + '%';
-    if(Math.abs(pctSum - 1) < 0.001){ checkEl.innerHTML = '<span class="check-ok">' + pctDisplay + ' — balanced</span>'; }
+    var pctDisplay = pctSum.toFixed(1) + '%';
+    if(Math.abs(pctSum - 100) < 0.1){ checkEl.innerHTML = '<span class="check-ok">' + pctDisplay + ' — balanced</span>'; }
     else { checkEl.innerHTML = '<span class="check-bad">' + pctDisplay + ' — should equal 100%</span>'; }
   }
 
@@ -1308,7 +1321,10 @@
   });
   charts.winrate = new Chart(document.getElementById('winRateChart'), {
     type:'doughnut', data:{ labels:['Wins','Losses'], datasets:[{ data:[0,0], backgroundColor:['#33D69A','#F0555F'], borderColor:'#121821', borderWidth:3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{ display:false } } }
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{ display:false },
+      datalabels:{ display:true, color:'#fff', textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:3,
+        font:{ family:"'IBM Plex Mono', monospace", weight:'600', size:13 },
+        formatter:function(v){ return v > 0 ? v : ''; } } } }
   });
   charts.seg = new Chart(document.getElementById('segPnlChart'), {
     type:'bar', data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderRadius:4, maxBarThickness:28 }] },
@@ -1317,7 +1333,10 @@
   });
   charts.alloc = new Chart(document.getElementById('allocChart'), {
     type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:['#33404F','#3987E5','#33D69A','#D9A44E','#8E6FD1'], borderColor:'#121821', borderWidth:3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ display:false } } }
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ display:false },
+      datalabels:{ display:true, color:'#fff', textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:3,
+        font:{ family:"'IBM Plex Mono', monospace", weight:'600', size:12 },
+        formatter:function(v){ return v > 0 ? v + '%' : ''; } } } }
   });
 
   recalcCapital();
