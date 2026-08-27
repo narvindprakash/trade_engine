@@ -365,10 +365,11 @@
     <div class="panel">
       <div class="panel-title">Trade Plan <span class="badge">LIVE — TARGET_MONEY = POINTS × LOT SIZE</span></div>
       <table class="edit-table" id="weeklyTable">
-        <thead><tr><th>Month</th><th>Week</th><th>Instrument</th><th>Target_Points</th><th>Lot_Size</th><th>Target_Money</th></tr></thead>
+        <thead><tr><th>Month</th><th>Week</th><th>Instrument</th><th>Target_Points</th><th>Lot_Size</th><th>Target_Money</th><th></th></tr></thead>
         <tbody id="weeklyBody"></tbody>
       </table>
-      <div class="form-note">Lot_Size auto-fills when you change Instrument, but you can override it. Target_Money recalculates as you type, and matches the formula in the Trade_Plan sheet.</div>
+      <button class="edit-btn" type="button" onclick="addTradePlanRow()" style="margin-top:10px;">+ ADD ROW</button>
+      <div class="form-note">Lot_Size auto-fills when you change Instrument, but you can override it. Target_Money recalculates as you type, and matches the formula in the Trade_Plan sheet. Deleting a row removes it from the sheet immediately.</div>
       <button class="submit-btn" type="button" onclick="saveTradePlan()">SAVE CHANGES</button>
       <span class="form-note" id="weeklySavedNote" style="margin-left:12px; display:inline-block;"></span>
     </div>
@@ -560,6 +561,7 @@
     document.getElementById('acctLbl').textContent = payload.email;
     fetchCapitalData();
     fetchTradePlanData();
+    fetchJournalData();
   }
 
   function signOut(){
@@ -608,7 +610,7 @@
   function doRefresh(){
     var btn = document.getElementById('refreshBtn');
     btn.classList.add('loading');
-    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData()]) : Promise.resolve();
+    var refreshTask = idToken ? Promise.all([fetchCapitalData(), fetchTradePlanData(), fetchJournalData()]) : Promise.resolve();
     refreshTask.finally(function(){
       btn.classList.remove('loading');
       document.getElementById('asof').textContent = 'as of ' + new Date().toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -644,30 +646,50 @@
     });
   }
 
-  var journalTrades = [
-    {id:'T001',date:'2026-02-02',time:'09:30',segment:'Index',instrument:'NIFTY',ttype:'Intraday',strategy:'FUT Buy',direction:'Long',entry:22150,sl:22090,target:22280,qty:75,margin:168000,exitdate:'2026-02-02',exit:22245,brok:180,netpnl:6945,r:1.19},
-    {id:'T002',date:'2026-02-05',time:'09:30',segment:'Index',instrument:'BANKNIFTY',ttype:'Be-Swing',strategy:'FUT Sell',direction:'Short',entry:48500,sl:48750,target:48000,qty:30,margin:145000,exitdate:'2026-02-06',exit:48690,brok:150,netpnl:-5850,r:-1.14},
-    {id:'T003',date:'2026-02-18',time:'09:30',segment:'Index',instrument:'NIFTY',ttype:'Intraday',strategy:'FUT Sell',direction:'Short',entry:22300,sl:22360,target:22200,qty:75,margin:168000,exitdate:'2026-02-18',exit:22208,brok:180,netpnl:6720,r:1.15},
-    {id:'T004',date:'2026-02-03',time:'09:30',segment:'Commodities',instrument:'NATGASMINI',ttype:'Bu-Swing',strategy:'FUT Buy',direction:'Long',entry:245.2,sl:240.5,target:255,qty:250,margin:45000,exitdate:'2026-02-05',exit:253.8,brok:90,netpnl:2060,r:0.83},
-    {id:'T005',date:'2026-02-04',time:'09:30',segment:'Equity',instrument:'RELIANCE',ttype:'Positional',strategy:'Equity Buy',direction:'Long',entry:2450,sl:2400,target:2580,qty:100,margin:245000,exitdate:'2026-02-12',exit:2565,brok:220,netpnl:11280,r:1.65},
-    {id:'T006',date:'2026-02-06',time:'09:30',segment:'Options',instrument:'NIFTY',ttype:'Intraday',strategy:'CE Buy',direction:'Long',entry:180,sl:'',target:280,qty:75,margin:13500,exitdate:'2026-02-06',exit:230,brok:60,netpnl:3690,r:1.88},
-    {id:'T007',date:'2026-02-09',time:'09:30',segment:'Equity',instrument:'TCS',ttype:'Be-Swing',strategy:'Equity Sell',direction:'Short',entry:3850,sl:3920,target:3720,qty:50,margin:192500,exitdate:'2026-02-11',exit:3905,brok:140,netpnl:-2890,r:-0.79}
-  ];
+  var journalData = [];
+  var openTrades = [];
+
+  function isClosedRow_(r){ return r.Exit_Price !== '' && r.Exit_Price !== null && r.Exit_Price !== undefined; }
+  function fmtMoney_(n){ n = Number(n) || 0; return (n < 0 ? '-' : '') + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); }
+  function fmtDate_(d){ if(!d) return ''; var dt = new Date(d); if(isNaN(dt)) return String(d); return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}); }
+
+  function fetchJournalData(){
+    if(!idToken) return Promise.resolve();
+    return fetch(WEBAPP_URL + '?token=' + encodeURIComponent(idToken) + '&action=journal')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.error){ alert('Error loading Trade Journal: ' + data.error); return; }
+        journalData = data || [];
+        openTrades = journalData.filter(function(r){ return !isClosedRow_(r); }).map(function(r){
+          var entryDate = new Date(r.Entry_Date);
+          var days = Math.max(0, Math.round((new Date() - entryDate) / 86400000));
+          return { id: r.Trade_ID, date: fmtDate_(r.Entry_Date), instrument: r.Instrument_Name, segment: r.Segment,
+            direction: r.Direction, strategy: r.Strategy_Type, entry: Number(r.Entry_Price || 0), qty: Number(r.Quantity || 0), days: days };
+        });
+        renderJournalTable();
+      });
+  }
+
   function renderJournalTable(){
-    document.getElementById('journalCountBadge').textContent = journalTrades.length + ' TRADES';
+    document.getElementById('journalCountBadge').textContent = journalData.length + ' TRADES';
     var body = document.getElementById('journalBody');
     body.innerHTML = '';
-    journalTrades.forEach(function(t, i){
-      var cls = t.netpnl >= 0 ? 'up' : 'down';
-      body.innerHTML += '<tr><td>' + t.id + '</td><td>' + t.date + '</td><td>' + t.instrument + '</td>' +
-        '<td><span class="seg-tag">' + t.segment + '</span></td><td>' + t.direction + '</td>' +
-        '<td class="mono-num">₹' + t.entry + '</td><td class="mono-num">₹' + t.exit + '</td>' +
-        '<td class="mono-num ' + cls + '">' + (t.netpnl < 0 ? '-' : '') + '₹' + Math.abs(t.netpnl).toLocaleString('en-IN') + '</td>' +
-        '<td class="mono-num ' + cls + '">' + (t.r >= 0 ? '+' : '') + t.r + 'R</td>' +
-        '<td><button class="edit-btn" onclick="editTrade(' + i + ')">EDIT</button></td></tr>';
+    journalData.slice().sort(function(a,b){ return new Date(b.Entry_Date) - new Date(a.Entry_Date); }).forEach(function(t){
+      var closed = isClosedRow_(t);
+      var net = Number(t.Net_PnL || 0);
+      var cls = closed ? (net >= 0 ? 'up' : 'down') : '';
+      body.innerHTML += '<tr><td>' + t.Trade_ID + '</td><td>' + fmtDate_(t.Entry_Date) + '</td><td>' + t.Instrument_Name + '</td>' +
+        '<td><span class="seg-tag">' + t.Segment + '</span></td><td>' + t.Direction + '</td>' +
+        '<td class="mono-num">₹' + t.Entry_Price + '</td><td class="mono-num">' + (closed ? '₹' + t.Exit_Price : 'open') + '</td>' +
+        '<td class="mono-num ' + cls + '">' + (closed ? fmtMoney_(net) : '—') + '</td>' +
+        '<td class="mono-num ' + cls + '">' + (t.R_Multiple !== '' && t.R_Multiple !== undefined ? (Number(t.R_Multiple) >= 0 ? '+' : '') + Number(t.R_Multiple).toFixed(2) + 'R' : '—') + '</td>' +
+        '<td><button class="edit-btn" onclick="editJournalTrade(\'' + t.Trade_ID + '\')">EDIT</button></td></tr>';
     });
   }
-  function editTrade(i){ openFloatWindow(journalTrades[i]); }
+  function editJournalTrade(tradeId){
+    var t = journalData.find(function(r){ return r.Trade_ID === tradeId; });
+    if(t) openFloatWindow(t);
+  }
 
   var INSTRUMENT_LOTS = {NIFTY:75, BANKNIFTY:30, NATGASMINI:250, SILVERMIC:5, RELIANCE:1, TCS:1, HDFCBANK:1, INFY:1};
   var tradePlanRows = [];
@@ -699,10 +721,32 @@
         '<td><select class="wk-instr" data-i="' + i + '" onchange="onInstrumentChange(' + i + ')">' + instrOptions.replace('>' + r.instrument + '<', ' selected>' + r.instrument + '<') + '</select></td>' +
         '<td><input type="number" class="wk-points" data-i="' + i + '" value="' + r.points + '" oninput="recalcWeekly()"></td>' +
         '<td><input type="number" class="wk-lot" data-i="' + i + '" value="' + r.lot + '" oninput="recalcWeekly()"></td>' +
-        '<td class="readout" id="wk-money-' + i + '">—</td>';
+        '<td class="readout" id="wk-money-' + i + '">—</td>' +
+        '<td><button class="edit-btn" onclick="deleteTradePlanRow(' + i + ')">DELETE</button></td>';
       body.appendChild(tr);
     });
     recalcWeekly();
+  }
+  function addTradePlanRow(){
+    var firstInstr = Object.keys(INSTRUMENT_LOTS)[0];
+    tradePlanRows.push({ month: '', week: 'WK-1', instrument: firstInstr, points: 0, lot: INSTRUMENT_LOTS[firstInstr] });
+    tradePlanRowMeta.push(null); // null = not yet saved to the sheet
+    buildWeeklyTable();
+  }
+  function deleteTradePlanRow(i){
+    var row = tradePlanRowMeta[i];
+    if(!row){
+      // never saved — just remove locally
+      tradePlanRows.splice(i, 1);
+      tradePlanRowMeta.splice(i, 1);
+      buildWeeklyTable();
+      return;
+    }
+    if(!confirm('Delete this row from the Trade_Plan sheet? This happens immediately.')) return;
+    postAction('deleteTradePlanRow', { __row: row }).then(function(res){
+      if(res.error){ alert('Error: ' + res.error); return; }
+      fetchTradePlanData();
+    });
   }
   function onInstrumentChange(i){
     var sel = document.querySelectorAll('.wk-instr')[i];
@@ -754,26 +798,7 @@
     var content = document.getElementById('modalInner').innerHTML;
     var styleTag = document.getElementById('sharedStyles').outerHTML;
     var theme = document.body.getAttribute('data-theme') || '';
-    var title = prefill ? ('Edit trade — ' + prefill.id) : 'New trade entry';
-
-    if(prefill){
-      content = content
-        .replace(/id="f_entrydate" value="[^"]*"/, 'id="f_entrydate" value="' + prefill.date + '"')
-        .replace(/id="f_entrytime" value="[^"]*"/, 'id="f_entrytime" value="' + prefill.time + '"')
-        .replace(/id="f_instrument"[^>]*value="[^"]*"/, 'id="f_instrument" placeholder="RELIANCE" value="' + prefill.instrument + '"')
-        .replace(/id="f_entry" value="[^"]*"/, 'id="f_entry" value="' + prefill.entry + '"')
-        .replace(/id="f_sl" value="[^"]*"/, 'id="f_sl" value="' + prefill.sl + '"')
-        .replace(/id="f_target" value="[^"]*"/, 'id="f_target" value="' + prefill.target + '"')
-        .replace(/id="f_qty" value="[^"]*"/, 'id="f_qty" value="' + prefill.qty + '"')
-        .replace(/id="f_margin" value="[^"]*"/, 'id="f_margin" value="' + prefill.margin + '"')
-        .replace(/id="f_exitdate" value="[^"]*"/, 'id="f_exitdate" value="' + prefill.exitdate + '"')
-        .replace(/id="f_exit" value="[^"]*"/, 'id="f_exit" value="' + prefill.exit + '"')
-        .replace(/id="f_brok" value="[^"]*"/, 'id="f_brok" value="' + prefill.brok + '"')
-        .replace('SUBMIT TRADE →', 'SAVE CHANGES →');
-      if(prefill.direction === 'Short'){
-        content = content.replace('class="sel-long active"', 'class="sel-long"').replace('id="btnShort"', 'id="btnShort" class="sel-short active"').replace('class="sel-short"', '');
-      }
-    }
+    var title = prefill ? ('Edit trade — ' + prefill.Trade_ID) : 'New trade entry';
 
     var w = window.open('', 'addTradeFloat_' + Date.now(), 'width=820,height=800,left=150,top=80,resizable=yes,scrollbars=yes');
     if(!w){ alert('Pop-up blocked — allow pop-ups for this page to use the floating window.'); return; }
@@ -787,154 +812,208 @@
       '<div class="modal"><div class="modal-head"><div class="modal-head-title">' + title + '</div><button class="modal-close" onclick="window.close()">&#10005;</button></div>' +
       '<div id="modalInner">' + content + '</div></div>' +
       '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>' +
+      '<script>var PREFILL = ' + JSON.stringify(prefill || null) + ';<\/script>' +
       '<script>' + POPUP_SCRIPT + '<\/script>' +
       '</body></html>');
     w.document.close();
   }
 
   var POPUP_SCRIPT = [
+    '// ---- shared with opener: opener.postAction, opener.fetchJournalData, opener.openTrades ----',
     'var direction = "Long";',
+    'var selectedTradeIdx = null;',
+    'var parsedBulkRows = [];',
+    '',
+    'function setSelectByText(id, text){ var sel = document.getElementById(id); if(!sel || !text) return; for(var i=0;i<sel.options.length;i++){ if(sel.options[i].text === text){ sel.selectedIndex = i; return; } } }',
+    'function fmtDateForInput(d){ if(!d) return ""; var dt = new Date(d); if(isNaN(dt)) return ""; return dt.toISOString().slice(0,10); }',
+    '',
     'function setDirection(d){ direction = d; document.getElementById("btnLong").classList.toggle("active", d==="Long"); document.getElementById("btnShort").classList.toggle("active", d==="Short"); calcPnl(); }',
     'function calcPnl(){ var entry=parseFloat(document.getElementById("f_entry").value)||0, exit=parseFloat(document.getElementById("f_exit").value)||0, qty=parseFloat(document.getElementById("f_qty").value)||0, brok=parseFloat(document.getElementById("f_brok").value)||0; var diff = direction==="Long" ? (exit-entry) : (entry-exit); var net = diff*qty-brok; var el=document.getElementById("pnlPreview"); el.textContent=(net<0?"-":"")+"\u20b9"+Math.abs(Math.round(net)).toLocaleString("en-IN"); el.className="value "+(net>=0?"up":"down"); }',
-    'var openTrades = [{id:"T021",date:"2026-02-24",instrument:"BANKNIFTY",segment:"Options",direction:"Short",strategy:"CE Sell",entry:210,qty:30,days:3},{id:"T022",date:"2026-02-25",instrument:"HDFCBANK",segment:"Equity",direction:"Long",strategy:"Equity Buy",entry:1712,qty:150,days:2},{id:"T023",date:"2026-02-20",instrument:"NATGASMINI",segment:"Commodities",direction:"Long",strategy:"FUT Buy",entry:248.5,qty:250,days:7},{id:"T024",date:"2026-02-26",instrument:"NIFTY",segment:"Index",direction:"Short",strategy:"FUT Sell",entry:22410,qty:75,days:1}];',
-    'var selectedTradeIdx = null;',
-    'function renderOpenTrades(){ document.getElementById("openCountPill").textContent=openTrades.length; var list=document.getElementById("openTradesList"); if(!openTrades.length){ list.innerHTML="<div class=\\"empty-note\\">No open trades.</div>"; return; } var h=""; openTrades.forEach(function(t,i){ var st=t.days>=5?"stale":""; h+="<div class=\\"open-trade-row\\" onclick=\\"selectOpenTrade("+i+")\\"><div class=\\"ot-main\\"><div class=\\"ot-instrument\\">"+t.instrument+" <span class=\\"seg-tag\\">"+t.segment+"</span></div><div class=\\"ot-meta\\">"+t.direction+" \u00b7 "+t.strategy+" \u00b7 entry \u20b9"+t.entry+" \u00b7 qty "+t.qty+" \u00b7 opened "+t.date+"</div></div><div class=\\"ot-days "+st+"\\">"+t.days+" days open</div><button class=\\"close-btn\\" onclick=\\"event.stopPropagation(); selectOpenTrade("+i+")\\">CLOSE \u2192</button></div>"; }); list.innerHTML=h; }',
-    'function selectOpenTrade(i){ selectedTradeIdx=i; var t=openTrades[i]; document.getElementById("entrySummary").innerHTML="<div class=\\"es-item\\"><div class=\\"es-label\\">Instrument</div><div class=\\"es-value\\">"+t.instrument+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Direction</div><div class=\\"es-value\\">"+t.direction+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Entry price</div><div class=\\"es-value\\">\u20b9"+t.entry+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Qty</div><div class=\\"es-value\\">"+t.qty+"</div></div>"; document.getElementById("c_exitprice").value=t.entry; document.getElementById("openTradesListView").style.display="none"; document.getElementById("closeTradeFormView").style.display="block"; calcClosePnl(); }',
-    'function backToOpenList(){ selectedTradeIdx=null; document.getElementById("openTradesListView").style.display="block"; document.getElementById("closeTradeFormView").style.display="none"; renderOpenTrades(); }',
-    'function calcClosePnl(){ if(selectedTradeIdx===null) return; var t=openTrades[selectedTradeIdx]; var exit=parseFloat(document.getElementById("c_exitprice").value)||0, brok=parseFloat(document.getElementById("c_brok").value)||0; var diff = t.direction==="Long" ? (exit-t.entry) : (t.entry-exit); var net=diff*t.qty-brok; var el=document.getElementById("closePnlPreview"); el.textContent=(net<0?"-":"")+"\u20b9"+Math.abs(Math.round(net)).toLocaleString("en-IN"); el.className="value "+(net>=0?"up":"down"); }',
-    'function setEntryMode(mode){ document.getElementById("modeSingleBtn").classList.toggle("active",mode==="single"); document.getElementById("modeCloseBtn").classList.toggle("active",mode==="close"); document.getElementById("modeBulkBtn").classList.toggle("active",mode==="bulk"); document.getElementById("singleEntryPane").style.display=mode==="single"?"block":"none"; document.getElementById("closeTradePane").style.display=mode==="close"?"block":"none"; document.getElementById("bulkUploadPane").style.display=mode==="bulk"?"block":"none"; if(mode==="close"){ backToOpenList(); } }',
-    'function handleFile(file){ if(!file) return; var reader=new FileReader(); var isCsv=/\\.csv$/i.test(file.name); reader.onload=function(e){ var wb; if(isCsv){ wb=XLSX.read(e.target.result,{type:"string"}); } else { wb=XLSX.read(e.target.result,{type:"array"}); } var sheet=wb.Sheets[wb.SheetNames[0]]; var rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""}); renderPreview(rows,file.name); }; if(isCsv) reader.readAsText(file); else reader.readAsArrayBuffer(file); }',
-    'function renderPreview(rows,filename){ if(!rows.length) return; var header=rows[0]; var body=rows.slice(1).filter(function(r){ return r.some(function(c){return c!=="";}); }); var h="<thead><tr>"+header.map(function(hh){return "<th>"+hh+"</th>";}).join("")+"</tr></thead><tbody>"; body.slice(0,10).forEach(function(r){ h+="<tr>"+header.map(function(_,i){return "<td>"+(r[i]!==undefined?r[i]:"")+"</td>";}).join("")+"</tr>"; }); h+="</tbody>"; document.getElementById("previewTable").innerHTML=h; document.getElementById("previewSummary").textContent=filename+" \u2014 "+body.length+" trade row(s) detected"; document.getElementById("previewWrap").classList.add("show"); }',
-    'document.addEventListener("DOMContentLoaded", function(){ var dz=document.getElementById("dropzone"); if(dz){ ["dragover","dragleave","drop"].forEach(function(evt){ dz.addEventListener(evt, function(e){ e.preventDefault(); if(evt==="dragover") dz.classList.add("drag"); if(evt==="dragleave") dz.classList.remove("drag"); if(evt==="drop"){ dz.classList.remove("drag"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); } }); }); } renderOpenTrades(); calcPnl(); });'
+    '',
+    'function applyPrefill(){',
+    '  if(!PREFILL) return;',
+    '  document.getElementById("f_entrydate").value = fmtDateForInput(PREFILL.Entry_Date);',
+    '  document.getElementById("f_entrytime").value = PREFILL.Entry_Time || "";',
+    '  setSelectByText("f_segment", PREFILL.Segment);',
+    '  document.getElementById("f_instrument").value = PREFILL.Instrument_Name || "";',
+    '  setSelectByText("f_tradetype", PREFILL.Trade_Type);',
+    '  setSelectByText("f_strategytype", PREFILL.Strategy_Type);',
+    '  setDirection(PREFILL.Direction === "Short" ? "Short" : "Long");',
+    '  document.getElementById("f_entry").value = PREFILL.Entry_Price || "";',
+    '  document.getElementById("f_sl").value = PREFILL.Stop_Loss || "";',
+    '  document.getElementById("f_target").value = PREFILL.Target_Price || "";',
+    '  document.getElementById("f_qty").value = PREFILL.Quantity || "";',
+    '  document.getElementById("f_margin").value = PREFILL.Margin_Used || "";',
+    '  setSelectByText("f_broker", PREFILL.Broker);',
+    '  document.getElementById("f_exitdate").value = fmtDateForInput(PREFILL.Exit_Date);',
+    '  document.getElementById("f_exit").value = PREFILL.Exit_Price || "";',
+    '  document.getElementById("f_brok").value = PREFILL.Brokerage_Taxes || "";',
+    '  setSelectByText("f_pltype", PREFILL.Profit_Loss_Type);',
+    '  setSelectByText("f_emotions", PREFILL.Emotions_Check);',
+    '  setSelectByText("f_marketcondition", PREFILL.Market_Condition);',
+    '  document.getElementById("f_context").value = PREFILL.Context || "";',
+    '  calcPnl();',
+    '  var btn = document.querySelector("#singleEntryPane .submit-btn");',
+    '  if(btn) btn.textContent = "SAVE CHANGES \u2192";',
+    '  document.getElementById("newTradeStatus").textContent = "Editing " + PREFILL.Trade_ID + ". Note: dropdown fields not in this trade\'s exact option list may reset to the default.";',
+    '}',
+    '',
+    'function buildNewTradePayload(){',
+    '  return {',
+    '    entryDate: document.getElementById("f_entrydate").value,',
+    '    entryTime: document.getElementById("f_entrytime").value,',
+    '    segment: document.getElementById("f_segment").value,',
+    '    instrument: document.getElementById("f_instrument").value,',
+    '    instrumentTraded: document.getElementById("f_instrument").value,',
+    '    tradeType: document.getElementById("f_tradetype").value,',
+    '    strategyType: document.getElementById("f_strategytype").value,',
+    '    direction: direction,',
+    '    entryPrice: parseFloat(document.getElementById("f_entry").value) || 0,',
+    '    stopLoss: document.getElementById("f_sl").value ? parseFloat(document.getElementById("f_sl").value) : "",',
+    '    targetPrice: document.getElementById("f_target").value ? parseFloat(document.getElementById("f_target").value) : "",',
+    '    quantity: parseFloat(document.getElementById("f_qty").value) || 0,',
+    '    marginUsed: parseFloat(document.getElementById("f_margin").value) || 0,',
+    '    broker: document.getElementById("f_broker").value,',
+    '    plType: document.getElementById("f_pltype").value,',
+    '    emotions: document.getElementById("f_emotions").value,',
+    '    marketCondition: document.getElementById("f_marketcondition").value,',
+    '    context: document.getElementById("f_context").value,',
+    '    notes: document.getElementById("f_context").value',
+    '  };',
+    '}',
+    'function mapToHeaderFields(p){',
+    '  return {',
+    '    Entry_Date: p.entryDate, Entry_Time: p.entryTime, Segment: p.segment, Instrument_Name: p.instrument,',
+    '    Instrument_Traded: p.instrumentTraded, Trade_Type: p.tradeType, Strategy_Type: p.strategyType, Direction: p.direction,',
+    '    Entry_Price: p.entryPrice, Stop_Loss: p.stopLoss, Target_Price: p.targetPrice, Quantity: p.quantity,',
+    '    Margin_Used: p.marginUsed, Broker: p.broker, Profit_Loss_Type: p.plType, Emotions_Check: p.emotions,',
+    '    Market_Condition: p.marketCondition, Context: p.context, Notes: p.notes',
+    '  };',
+    '}',
+    'function submitNewTrade(){',
+    '  var status = document.getElementById("newTradeStatus");',
+    '  var payload = buildNewTradePayload();',
+    '  status.textContent = "Saving\u2026";',
+    '  var action = PREFILL ? "editTrade" : "newTrade";',
+    '  var body = PREFILL ? { tradeId: PREFILL.Trade_ID, fields: mapToHeaderFields(payload) } : payload;',
+    '  opener.postAction(action, body).then(function(res){',
+    '    if(res.error){ status.textContent = "Error: " + res.error; return; }',
+    '    status.textContent = "Saved.";',
+    '    opener.fetchJournalData().then(function(){ window.close(); });',
+    '  }).catch(function(err){ status.textContent = "Network error: " + err.message; });',
+    '}',
+    '',
+    'function renderOpenTrades(){',
+    '  var list = opener.openTrades || [];',
+    '  document.getElementById("openCountPill").textContent = list.length;',
+    '  var el = document.getElementById("openTradesList");',
+    '  if(!list.length){ el.innerHTML = "<div class=\\"empty-note\\">No open trades \u2014 every logged trade has an exit.</div>"; return; }',
+    '  var h = "";',
+    '  list.forEach(function(t,i){',
+    '    var st = t.days >= 5 ? "stale" : "";',
+    '    h += "<div class=\\"open-trade-row\\" onclick=\\"selectOpenTrade("+i+")\\"><div class=\\"ot-main\\"><div class=\\"ot-instrument\\">"+t.instrument+" <span class=\\"seg-tag\\">"+t.segment+"</span></div><div class=\\"ot-meta\\">"+t.direction+" \u00b7 "+t.strategy+" \u00b7 entry \u20b9"+t.entry+" \u00b7 qty "+t.qty+" \u00b7 opened "+t.date+"</div></div><div class=\\"ot-days "+st+"\\">"+t.days+" day"+(t.days===1?"":"s")+" open</div><button class=\\"close-btn\\" onclick=\\"event.stopPropagation(); selectOpenTrade("+i+")\\">CLOSE \u2192</button></div>";',
+    '  });',
+    '  el.innerHTML = h;',
+    '}',
+    'function selectOpenTrade(i){',
+    '  selectedTradeIdx = i;',
+    '  var t = opener.openTrades[i];',
+    '  document.getElementById("entrySummary").innerHTML = "<div class=\\"es-item\\"><div class=\\"es-label\\">Instrument</div><div class=\\"es-value\\">"+t.instrument+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Direction</div><div class=\\"es-value\\">"+t.direction+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Entry price</div><div class=\\"es-value\\">\u20b9"+t.entry+"</div></div><div class=\\"es-item\\"><div class=\\"es-label\\">Qty</div><div class=\\"es-value\\">"+t.qty+"</div></div>";',
+    '  document.getElementById("c_exitprice").value = t.entry;',
+    '  document.getElementById("openTradesListView").style.display = "none";',
+    '  document.getElementById("closeTradeFormView").style.display = "block";',
+    '  calcClosePnl();',
+    '}',
+    'function backToOpenList(){ selectedTradeIdx = null; document.getElementById("openTradesListView").style.display = "block"; document.getElementById("closeTradeFormView").style.display = "none"; renderOpenTrades(); }',
+    'function calcClosePnl(){',
+    '  if(selectedTradeIdx === null) return;',
+    '  var t = opener.openTrades[selectedTradeIdx];',
+    '  var exit = parseFloat(document.getElementById("c_exitprice").value) || 0, brok = parseFloat(document.getElementById("c_brok").value) || 0;',
+    '  var diff = t.direction === "Long" ? (exit - t.entry) : (t.entry - exit);',
+    '  var net = diff * t.qty - brok;',
+    '  var el = document.getElementById("closePnlPreview");',
+    '  el.textContent = (net<0?"-":"")+"\u20b9"+Math.abs(Math.round(net)).toLocaleString("en-IN"); el.className = "value " + (net>=0?"up":"down");',
+    '}',
+    'function submitCloseTrade(){',
+    '  if(selectedTradeIdx === null) return;',
+    '  var t = opener.openTrades[selectedTradeIdx];',
+    '  var status = document.getElementById("closeTradeStatus");',
+    '  var payload = { tradeId: t.id, exitDate: document.getElementById("c_exitdate").value, exitPrice: parseFloat(document.getElementById("c_exitprice").value)||0, brokerage: parseFloat(document.getElementById("c_brok").value)||0, plType: document.getElementById("c_pltype").value, lessonsLearned: document.getElementById("c_lessons").value };',
+    '  status.textContent = "Saving\u2026";',
+    '  opener.postAction("closeTrade", payload).then(function(res){',
+    '    if(res.error){ status.textContent = "Error: " + res.error; return; }',
+    '    status.textContent = "Closed.";',
+    '    opener.fetchJournalData().then(function(){ window.close(); });',
+    '  }).catch(function(err){ status.textContent = "Network error: " + err.message; });',
+    '}',
+    '',
+    'function setEntryMode(mode){',
+    '  document.getElementById("modeSingleBtn").classList.toggle("active",mode==="single");',
+    '  document.getElementById("modeCloseBtn").classList.toggle("active",mode==="close");',
+    '  document.getElementById("modeBulkBtn").classList.toggle("active",mode==="bulk");',
+    '  document.getElementById("singleEntryPane").style.display=mode==="single"?"block":"none";',
+    '  document.getElementById("closeTradePane").style.display=mode==="close"?"block":"none";',
+    '  document.getElementById("bulkUploadPane").style.display=mode==="bulk"?"block":"none";',
+    '  if(mode==="close"){ backToOpenList(); }',
+    '}',
+    '',
+    'function handleFile(file){',
+    '  if(!file) return;',
+    '  var reader = new FileReader(); var isCsv = /\\.csv$/i.test(file.name);',
+    '  reader.onload = function(e){',
+    '    var wb = isCsv ? XLSX.read(e.target.result,{type:"string"}) : XLSX.read(e.target.result,{type:"array"});',
+    '    var sheet = wb.Sheets[wb.SheetNames[0]];',
+    '    var rows = XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});',
+    '    renderPreview(rows,file.name);',
+    '  };',
+    '  if(isCsv) reader.readAsText(file); else reader.readAsArrayBuffer(file);',
+    '}',
+    'function renderPreview(rows,filename){',
+    '  if(!rows.length) return;',
+    '  var header = rows[0];',
+    '  var body = rows.slice(1).filter(function(r){ return r.some(function(c){return c!=="";}); });',
+    '  parsedBulkRows = body.map(function(r){ var obj={}; header.forEach(function(h,i){ obj[h]=r[i]; }); return obj; });',
+    '  var h = "<thead><tr>"+header.map(function(hh){return "<th>"+hh+"</th>";}).join("")+"</tr></thead><tbody>";',
+    '  body.slice(0,10).forEach(function(r){ h+="<tr>"+header.map(function(_,i){return "<td>"+(r[i]!==undefined?r[i]:"")+"</td>";}).join("")+"</tr>"; });',
+    '  h += "</tbody>";',
+    '  document.getElementById("previewTable").innerHTML = h;',
+    '  document.getElementById("previewSummary").textContent = filename+" \u2014 "+body.length+" trade row(s) detected"+(body.length>10?" (showing first 10)":"");',
+    '  document.getElementById("previewWrap").classList.add("show");',
+    '}',
+    'function submitBulkUpload(){',
+    '  var status = document.getElementById("bulkUploadStatus");',
+    '  var total = parsedBulkRows.length;',
+    '  if(!total){ status.textContent = "No rows parsed yet."; return; }',
+    '  var done = 0, failed = 0;',
+    '  function next(i){',
+    '    if(i >= total){',
+    '      status.textContent = "Done \u2014 " + done + " / " + total + " uploaded" + (failed ? (", " + failed + " failed") : "") + ".";',
+    '      opener.fetchJournalData();',
+    '      return;',
+    '    }',
+    '    status.textContent = "Uploading " + (i+1) + " / " + total + "\u2026";',
+    '    opener.postAction("newTrade", parsedBulkRows[i]).then(function(res){',
+    '      if(res.error){ failed++; } else { done++; }',
+    '      next(i+1);',
+    '    }).catch(function(){ failed++; next(i+1); });',
+    '  }',
+    '  next(0);',
+    '}',
+    '',
+    'var dz = document.getElementById("dropzone");',
+    '["dragover","dragleave","drop"].forEach(function(evt){',
+    '  dz.addEventListener(evt, function(e){',
+    '    e.preventDefault();',
+    '    if(evt==="dragover") dz.classList.add("drag");',
+    '    if(evt==="dragleave") dz.classList.remove("drag");',
+    '    if(evt==="drop"){ dz.classList.remove("drag"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }',
+    '  });',
+    '});',
+    '',
+    'renderOpenTrades();',
+    'calcPnl();',
+    'applyPrefill();'
   ].join('\n');
-
-
-  function setEntryMode(mode){
-    document.getElementById('modeSingleBtn').classList.toggle('active', mode === 'single');
-    document.getElementById('modeCloseBtn').classList.toggle('active', mode === 'close');
-    document.getElementById('modeBulkBtn').classList.toggle('active', mode === 'bulk');
-    document.getElementById('singleEntryPane').style.display = mode === 'single' ? 'block' : 'none';
-    document.getElementById('closeTradePane').style.display = mode === 'close' ? 'block' : 'none';
-    document.getElementById('bulkUploadPane').style.display = mode === 'bulk' ? 'block' : 'none';
-    if(mode === 'close'){ backToOpenList(); }
-  }
-
-  var openTrades = [
-    {id:'T021', date:'2026-02-24', instrument:'BANKNIFTY', segment:'Options', direction:'Short', strategy:'CE Sell', entry:210, qty:30, days:3},
-    {id:'T022', date:'2026-02-25', instrument:'HDFCBANK', segment:'Equity', direction:'Long', strategy:'Equity Buy', entry:1712, qty:150, days:2},
-    {id:'T023', date:'2026-02-20', instrument:'NATGASMINI', segment:'Commodities', direction:'Long', strategy:'FUT Buy', entry:248.5, qty:250, days:7},
-    {id:'T024', date:'2026-02-26', instrument:'NIFTY', segment:'Index', direction:'Short', strategy:'FUT Sell', entry:22410, qty:75, days:1}
-  ];
-  var selectedTradeIdx = null;
-
-  function renderOpenTrades(){
-    document.getElementById('openCountPill').textContent = openTrades.length;
-    var list = document.getElementById('openTradesList');
-    if(!openTrades.length){
-      list.innerHTML = '<div class="empty-note">No open trades — every logged trade has an exit. Nice and clean.</div>';
-      return;
-    }
-    var htm = '';
-    openTrades.forEach(function(t, i){
-      var staleClass = t.days >= 5 ? 'stale' : '';
-      htm += '<div class="open-trade-row" onclick="selectOpenTrade(' + i + ')">' +
-        '<div class="ot-main">' +
-          '<div class="ot-instrument">' + t.instrument + ' <span class="seg-tag">' + t.segment + '</span></div>' +
-          '<div class="ot-meta">' + t.direction + ' · ' + t.strategy + ' · entry ₹' + t.entry + ' · qty ' + t.qty + ' · opened ' + t.date + '</div>' +
-        '</div>' +
-        '<div class="ot-days ' + staleClass + '">' + t.days + ' day' + (t.days === 1 ? '' : 's') + ' open</div>' +
-        '<button class="close-btn" onclick="event.stopPropagation(); selectOpenTrade(' + i + ')">CLOSE →</button>' +
-      '</div>';
-    });
-    list.innerHTML = htm;
-  }
-
-  function selectOpenTrade(i){
-    selectedTradeIdx = i;
-    var t = openTrades[i];
-    document.getElementById('entrySummary').innerHTML =
-      '<div class="es-item"><div class="es-label">Instrument</div><div class="es-value">' + t.instrument + '</div></div>' +
-      '<div class="es-item"><div class="es-label">Direction</div><div class="es-value">' + t.direction + '</div></div>' +
-      '<div class="es-item"><div class="es-label">Entry price</div><div class="es-value">₹' + t.entry + '</div></div>' +
-      '<div class="es-item"><div class="es-label">Qty</div><div class="es-value">' + t.qty + '</div></div>';
-    document.getElementById('c_exitprice').value = t.entry;
-    document.getElementById('openTradesListView').style.display = 'none';
-    document.getElementById('closeTradeFormView').style.display = 'block';
-    calcClosePnl();
-  }
-  function backToOpenList(){
-    selectedTradeIdx = null;
-    document.getElementById('openTradesListView').style.display = 'block';
-    document.getElementById('closeTradeFormView').style.display = 'none';
-    renderOpenTrades();
-  }
-  function calcClosePnl(){
-    if(selectedTradeIdx === null) return;
-    var t = openTrades[selectedTradeIdx];
-    var exit = parseFloat(document.getElementById('c_exitprice').value) || 0;
-    var brok = parseFloat(document.getElementById('c_brok').value) || 0;
-    var diff = t.direction === 'Long' ? (exit - t.entry) : (t.entry - exit);
-    var net = diff * t.qty - brok;
-    var el = document.getElementById('closePnlPreview');
-    el.textContent = (net < 0 ? '-' : '') + '₹' + Math.abs(Math.round(net)).toLocaleString('en-IN');
-    el.className = 'value ' + (net >= 0 ? 'up' : 'down');
-  }
-
-  var direction = 'Long';
-  function setDirection(d){
-    direction = d;
-    document.getElementById('btnLong').classList.toggle('active', d === 'Long');
-    document.getElementById('btnShort').classList.toggle('active', d === 'Short');
-    calcPnl();
-  }
-  function calcPnl(){
-    var entry = parseFloat(document.getElementById('f_entry').value) || 0;
-    var exit = parseFloat(document.getElementById('f_exit').value) || 0;
-    var qty = parseFloat(document.getElementById('f_qty').value) || 0;
-    var brok = parseFloat(document.getElementById('f_brok').value) || 0;
-    var diff = direction === 'Long' ? (exit - entry) : (entry - exit);
-    var net = diff * qty - brok;
-    var el = document.getElementById('pnlPreview');
-    el.textContent = (net < 0 ? '-' : '') + '₹' + Math.abs(Math.round(net)).toLocaleString('en-IN');
-    el.className = 'value ' + (net >= 0 ? 'up' : 'down');
-  }
-
-  var dz = document.getElementById('dropzone');
-  ['dragover','dragleave','drop'].forEach(function(evt){
-    dz.addEventListener(evt, function(e){
-      e.preventDefault();
-      if(evt === 'dragover') dz.classList.add('drag');
-      if(evt === 'dragleave') dz.classList.remove('drag');
-      if(evt === 'drop'){ dz.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }
-    });
-  });
-  function handleFile(file){
-    if(!file) return;
-    var reader = new FileReader();
-    var isCsv = /\.csv$/i.test(file.name);
-    reader.onload = function(e){
-      var wb;
-      if(isCsv){ wb = XLSX.read(e.target.result, {type:'string'}); }
-      else { wb = XLSX.read(e.target.result, {type:'array'}); }
-      var sheet = wb.Sheets[wb.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
-      renderPreview(rows, file.name);
-    };
-    if(isCsv) reader.readAsText(file); else reader.readAsArrayBuffer(file);
-  }
-  function renderPreview(rows, filename){
-    if(!rows.length) return;
-    var header = rows[0];
-    var body = rows.slice(1).filter(function(r){ return r.some(function(c){ return c !== ''; }); });
-    var htm = '<thead><tr>' + header.map(function(h){ return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>';
-    body.slice(0, 10).forEach(function(r){
-      htm += '<tr>' + header.map(function(_, i){ return '<td>' + (r[i] !== undefined ? r[i] : '') + '</td>'; }).join('') + '</tr>';
-    });
-    htm += '</tbody>';
-    document.getElementById('previewTable').innerHTML = htm;
-    document.getElementById('previewSummary').textContent = filename + ' — ' + body.length + ' trade row(s) detected' + (body.length > 10 ? ' (showing first 10)' : '');
-    document.getElementById('previewWrap').classList.add('show');
-  }
 
   function recalcCapital(){
     var total = parseFloat(document.getElementById('totalCapital').value) || 0;
