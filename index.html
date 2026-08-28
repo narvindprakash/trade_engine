@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TRADE ENGINE</title>
+<title>TRADE ENGINE — mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
@@ -228,7 +228,7 @@
   }
 </style>
 </head>
-<body data-theme="light">
+<body>
 <div class="wrap">
 
   <div class="topbar">
@@ -239,8 +239,8 @@
       <div class="theme-select">
         <button class="theme-btn" onclick="toggleThemeMenu()">◐ THEME</button>
         <div class="theme-menu" id="themeMenu">
-          <div class="theme-opt" data-theme="dark" onclick="setTheme('dark')"><span class="theme-swatch" style="background:#0A0E13;"></span>Dark</div>
-          <div class="theme-opt sel"data-theme="light" onclick="setTheme('light')"><span class="theme-swatch" style="background:#EEF0F3;"></span>Light</div>
+          <div class="theme-opt sel" data-theme="dark" onclick="setTheme('dark')"><span class="theme-swatch" style="background:#0A0E13;"></span>Dark</div>
+          <div class="theme-opt" data-theme="light" onclick="setTheme('light')"><span class="theme-swatch" style="background:#EEF0F3;"></span>Light</div>
           <div class="theme-opt" data-theme="custom" onclick="setTheme('custom')"><span class="theme-swatch" style="background:#D9A44E;"></span>Custom</div>
           <div class="custom-row" id="customRow" style="display:none;">
             <label>Accent</label>
@@ -511,7 +511,7 @@
             <div class="field"><label>Exit date</label><input type="date" id="c_exitdate" value="2026-02-27" oninput="calcClosePnl()"></div>
             <div class="field"><label>Exit price</label><input type="number" id="c_exitprice" oninput="calcClosePnl()"></div>
             <div class="field"><label>Brokerage &amp; taxes</label><input type="number" id="c_brok" value="150" oninput="calcClosePnl()"></div>
-            <div class="field"><label>Profit/loss type</label><select id="c_pltype"><option>GOOD PROFIT</option><option>GOOD LOSS</option><option>BAD PROFIT</option><option>BAD LOSS</option></select></div>
+            <div class="field"><label>Profit/loss type</label><select id="c_pltype"><option>Rule-based Win</option><option>Rule-based Loss</option><option>Impulsive Win</option><option>Impulsive Loss</option></select></div>
             <div class="field span2"><label>Lessons learned</label><input type="text" id="c_lessons" placeholder="What worked or what to fix next time"></div>
           </div>
 
@@ -554,7 +554,7 @@
     light:  { grid:'#DDE1E6', textSecondary:'#5B6472', profit:'#189367', loss:'#D93A44', accent:'#B5792E', panelBg:'#FFFFFF' },
     custom: { grid:'#232C38', textSecondary:'#8C97A6', profit:'#33D69A', loss:'#F0555F', accent:'#D9A44E', panelBg:'#121821' }
   };
-  var currentTheme = 'light';
+  var currentTheme = 'dark';
   var charts = {};
 
   Chart.register(ChartDataLabels);
@@ -690,9 +690,14 @@
     if(!matchName) return null;
 
     var suffix = null;
-    if(str.slice(-2) === 'CE') suffix = 'CE';
-    else if(str.slice(-2) === 'PE') suffix = 'PE';
-    else if(str.slice(-3) === 'FUT') suffix = 'FUT';
+    var remainder = str.slice(matchName.length); // check the suffix against what's left AFTER
+    // the instrument name, not the whole string — avoids "RELIANCE"/"BAJFINANCE" (which end
+    // in the letters "CE") being misread as Call Options when there's nothing after the name.
+    if(remainder){
+      if(remainder.slice(-2) === 'CE') suffix = 'CE';
+      else if(remainder.slice(-2) === 'PE') suffix = 'PE';
+      else if(remainder.slice(-3) === 'FUT') suffix = 'FUT';
+    }
 
     var instrumentType = instrumentTypeMap[matchName]; // Index / Commodities / Stocks
     var segment;
