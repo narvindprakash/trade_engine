@@ -228,7 +228,7 @@
   }
 </style>
 </head>
-<body>
+<body data-theme="light">
 <div class="wrap">
 
   <div class="topbar">
@@ -239,8 +239,8 @@
       <div class="theme-select">
         <button class="theme-btn" onclick="toggleThemeMenu()">◐ THEME</button>
         <div class="theme-menu" id="themeMenu">
-          <div class="theme-opt sel" data-theme="dark" onclick="setTheme('dark')"><span class="theme-swatch" style="background:#0A0E13;"></span>Dark</div>
-          <div class="theme-opt" data-theme="light" onclick="setTheme('light')"><span class="theme-swatch" style="background:#EEF0F3;"></span>Light</div>
+          <div class="theme-opt" data-theme="dark" onclick="setTheme('dark')"><span class="theme-swatch" style="background:#0A0E13;"></span>Dark</div>
+          <div class="theme-opt sel"data-theme="light" onclick="setTheme('light')"><span class="theme-swatch" style="background:#EEF0F3;"></span>Light</div>
           <div class="theme-opt" data-theme="custom" onclick="setTheme('custom')"><span class="theme-swatch" style="background:#D9A44E;"></span>Custom</div>
           <div class="custom-row" id="customRow" style="display:none;">
             <label>Accent</label>
